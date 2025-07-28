@@ -40,28 +40,4 @@
     
   </entry>
   
-  <entry>
-    <title>test1</title>
-    <link href="https://stackecho.blog/2025/07/28/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/MIT%206.s081%E4%BF%AE%E7%82%BC%E7%AC%94%E8%AE%B0/2025-07-28-test1/"/>
-    <id>https://stackecho.blog/2025/07/28/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/MIT%206.s081%E4%BF%AE%E7%82%BC%E7%AC%94%E8%AE%B0/2025-07-28-test1/</id>
-    <published>2025-07-28T12:29:23.000Z</published>
-    <updated>2025-07-28T12:29:28.108Z</updated>
-    
-    <content type="html"><![CDATA[<h1><span id="test1">test1</span></h1>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1&gt;&lt;span id=&quot;test1&quot;&gt;test1&lt;/span&gt;&lt;/h1&gt;</summary>
-      
-    
-    
-    
-    <category term="操作系统" scheme="https://stackecho.blog/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="MIT 6.s081修炼笔记" scheme="https://stackecho.blog/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/MIT-6-s081%E4%BF%AE%E7%82%BC%E7%AC%94%E8%AE%B0/"/>
-    
-    
-  </entry>
-  
 </feed>
