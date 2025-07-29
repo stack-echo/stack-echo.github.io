@@ -27,7 +27,7 @@
 <meta property="og:description" content="博客搭建新思路：借助大模型提示词开启高效之旅 使用 Hexo 框架在 GitHub Pages 上搭建个人博客站点，并通过 NameSilo 购买域名，托管在 Cloudflare 上，将域名重定向到 GitHub Pages 站点。同时，选择 Next或Fliud 作为网站主题，并使用 Obsidian 作为博客管理和撰写工具，打造高效舒适的工作流。  在这个信息过载的时代，我原本计划撰写一篇详">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2025-07-27T12:45:08.000Z">
-<meta property="article:modified_time" content="2025-07-29T10:21:53.816Z">
+<meta property="article:modified_time" content="2025-07-29T10:41:03.537Z">
 <meta property="article:author" content="Xu Yuyang">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -297,35 +297,35 @@
 <li><p>建立高效的工作流闭环</p>
 </li>
 </ul>
-<p>接下来，我将具体操作总结为智能搭建五部曲：<br><em>1. 基础准备（科学上网方案）</em><br><em>1. Hexo核心搭建</em><br><em>2. 域名系统优化（可选）</em><br><em>3. 主题深度定制</em><br><em>4. Obsidian内容管理</em></p>
-<p><strong>1. 基础准备（科学上网方案）</strong><br>既然使用了github，那“科学上网”就是逃不开的话题，那么你可以使用以下的提示词：<br>“我在中国大陆，需要稳定访问GitHub进行博客搭建，请推荐三种可行的网络解决方案，要求：</p>
+<p>接下来，我将具体操作总结为智能搭建五部曲：<br><em>0. 基础准备（科学上网方案）</em><br><em>1. Hexo核心搭建</em><br><em>2. 域名系统优化（可选）</em><br><em>3. 主题深度定制</em><br><em>4. Obsidian内容管理</em></p>
+<p><strong>0. 基础准备（科学上网方案）</strong><br>既然使用了github，那“科学上网”就是逃不开的话题，那么你可以使用以下的提示词：<br>“我在中国大陆，需要稳定访问GitHub进行博客搭建，请推荐三种可行的网络解决方案，要求：</p>
 <ol>
 <li>包含具体配置步骤</li>
 <li>注明各方案优缺点</li>
 <li>提供验证连接成功的方法”</li>
 </ol>
-<p><strong>2. Hexo核心搭建</strong><br>要想使用hexo，你还需要下载Node.js、npm、Git并配置ssh连接，因为使用HTTP连接会出现很多网络问题，你可以参考以下的提示词：<br>“作为前端新手，我需要通过Hexo+GitHub Pages搭建博客，请：</p>
+<p><strong>1. Hexo核心搭建</strong><br>要想使用hexo，你还需要下载Node.js、npm、Git并配置ssh连接，因为使用HTTP连接会出现很多网络问题，你可以参考以下的提示词：<br>“作为前端新手，我需要通过Hexo+GitHub Pages搭建博客，请：</p>
 <ol>
 <li>分步指导Node.js&#x2F;npm&#x2F;Git环境配置</li>
 <li>提供SSH密钥生成与GitHub配置的完整命令</li>
 <li>包含验证各环节成功的检测命令</li>
 <li>解释.gitignore的最佳实践配置”</li>
 </ol>
-<p><strong>3. 域名系统优化（可选）</strong><br>如果想要购买私有域名并部署，可以参考以下提示词（注意将example.com替换成自己心仪的域名哦）：<br>“计划在NameSilo购买example.com域名并通过Cloudflare托管，要求：</p>
+<p><strong>2. 域名系统优化（可选）</strong><br>如果想要购买私有域名并部署，可以参考以下提示词（注意将example.com替换成自己心仪的域名哦）：<br>“计划在NameSilo购买example.com域名并通过Cloudflare托管，要求：</p>
 <ol>
 <li>域名解析的完整DNS配置流程</li>
 <li>HTTPS强制跳转设置</li>
 <li>GitHub Pages的CNAME配置</li>
 <li>常见SSL证书问题的解决方案”</li>
 </ol>
-<p><strong>4. 主题深度定制</strong><br>你的博客往往需要一个主题才能更好看，以及进行个性化定制：<br>“为Hexo选择Fluid主题后，我需要：</p>
+<p><strong>3. 主题深度定制</strong><br>你的博客往往需要一个主题才能更好看，以及进行个性化定制：<br>“为Hexo选择Fluid主题后，我需要：</p>
 <ol>
 <li>修改主题色为#2C3E50</li>
 <li>添加豆瓣阅读插件</li>
 <li>实现目录锚点跳转</li>
 <li>优化移动端显示效果<br>请给出具体配置代码及解释”<br>博客主题的个性化定制是个无底洞，这里建议先进行简单的配置，之后一边理解一边慢慢添加修改。</li>
 </ol>
-<p><strong>5. Obsidian内容管理</strong><br>这应该是除了配置私有域名外最容易踩坑的地方了，下面的提示词也只能作为参考，各位可以根据自身情况进行删改，当然我更建议以obsidian与hexo作为关键词进行检索，找一个合适的模版，针对该模版进行提问与配置。<br>“需要建立Obsidian+Hexo的写作系统：</p>
+<p><strong>4. Obsidian内容管理</strong><br>这应该是除了配置私有域名外最容易踩坑的地方了，下面的提示词也只能作为参考，各位可以根据自身情况进行删改，当然我更建议以obsidian与hexo作为关键词进行检索，找一个合适的模版，针对该模版进行提问与配置。<br>“需要建立Obsidian+Hexo的写作系统：</p>
 <ol>
 <li>文件树自动映射为博客分类</li>
 <li>模板包含Front-matter自动填充</li>
