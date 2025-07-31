@@ -87,77 +87,6 @@
       </categories>
   </entry>
   <entry>
-    <title>CSS选择器与XPath</title>
-    <url>/2025/07/30/%E7%88%AC%E8%99%AB/2025-07-30-CSS%E9%80%89%E6%8B%A9%E5%99%A8%E4%B8%8EXPath/</url>
-    <content><![CDATA[<blockquote>
-<p>博主最近在构建一个用于危险化学品检测的多模态知识图谱，由于没有开源的数据集，遂只能自行进行数据的爬取。而想要进行网络资源的抓取，对于文档元素的定位是绕不开的话题。正则表达式由于写法过于冗杂，不在博主的考虑之中，接下来主要为大家介绍CSS选择器与XPath两种方法。</p>
-</blockquote>
-<h3><span id="css-xuan-ze-qi">CSS选择器</span></h3><p>CSS是层叠样式表的简称，很多的网页都使用了这个技术，因此，要用于HTML文档的样式应用CSS选择器，也被广泛用于Web抓取和前端测试中。</p>
-]]></content>
-      <categories>
-        <category>爬虫</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>前言：我与6.S081的两次相遇</title>
-    <url>/2025/07/28/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/MIT%206.s081%E4%BF%AE%E7%82%BC%E7%AC%94%E8%AE%B0/2025-07-28-%E5%89%8D%E8%A8%80%EF%BC%9A%E6%88%91%E4%B8%8E6.S081%E7%9A%84%E4%B8%A4%E6%AC%A1%E7%9B%B8%E9%81%87/</url>
-    <content><![CDATA[<h2><span id="chu-shi-yi-chang-chong-man-yi-wai-de-xie-hou">初识：一场充满意外的邂逅</span></h2><p>2023年的夏天，考研失利的我决定重新夯实计算机基础。在搜索”最好的操作系统课程”时，MIT 6.S081这个”网红课”毫无悬念地出现在所有推荐列表中。但那时的我还停留在”三无”状态：</p>
-<ul>
-<li><p>无科学上网能力</p>
-</li>
-<li><p>无Git实践经验</p>
-</li>
-<li><p>无GitHub使用认知</p>
-</li>
-</ul>
-<p>幸运的是课程官网可以直接访问，让我得以绕过第一道门槛。按照指南，我在VMware上安装了Ubuntu，开始了第一次操作系统探索之旅。</p>
-<h2><span id="ji-zhu-li-xian-ji">技术历险记</span></h2><h3><span id="wang-luo-kun-jing-yu-po-ju">网络困境与破局</span></h3><p>课程所需的工具链下载成了第一个拦路虎。感谢国内技术社区的分享精神，Gitee上的镜像仓库让我跳过了这个障碍。</p>
-<h3><span id="kai-fa-huan-jing-you-hua">开发环境优化</span></h3><p>原生vim糟糕的操作效率让我很快转向了VSCode远程开发方案。通过配置Remote-SSH插件，终于建立了舒适的学习环境。</p>
-<h3><span id="xue-xi-qu-xian-tu-po">学习曲线突破</span></h3><p>作为系统调用领域的新手，前几个实验的难度曲线令人却步。我的破局方法包括：</p>
-<ol>
-<li><p>精读课程讲义（重点标注系统调用机制）</p>
-</li>
-<li><p>交叉参考《C专家编程》理解复杂声明</p>
-</li>
-<li><p>通过《C和指针》掌握底层内存操作</p>
-</li>
-<li><p>通过题解理解题目背后的原理</p>
-</li>
-</ol>
-<h2><span id="hei-tian-e-shi-jian">黑天鹅事件</span></h2><p>那个看似平常的下午，开发环境突然崩溃的连锁反应：</p>
-<ol>
-<li>VSCode SSH连接异常 → 2. VMware虚拟机启动失败 → 3. 三次重启尝试无果 → 4. 实验环境完全丢失</li>
-</ol>
-<p>这次事故最终促使我转向了南大jyy的操作系统课程，但也埋下了重学的种子。</p>
-<h2><span id="zai-chu-fa-quan-xin-de-zheng-cheng">再出发：全新的征程</span></h2><p>2025年暑假，带着这些升级装备重新启程：</p>
-<ul>
-<li><p>🛠️ 完善的开发工具链（科学上网以及mac os开发环境）</p>
-</li>
-<li><p>🧠 更完整的知识体系（包括编译原理和计算机体系结构）</p>
-</li>
-<li><p>📝 高效的输出系统（Hexo博客+Obsidian知识库）</p>
-</li>
-</ul>
-<p>这次学习我将重点关注：</p>
-<ol>
-<li><p>实验环境的灾备方案</p>
-</li>
-<li><p>关键知识点的可视化记录</p>
-</li>
-<li><p>问题解决过程的完整归档</p>
-</li>
-</ol>
-<blockquote>
-<p>“The only real failure is the failure to learn from failure.” — Alan Kay</p>
-</blockquote>
-<p>欢迎各位同行者通过Issues或邮件交流学习心得，让我们在系统编程的深海中共同探索。</p>
-]]></content>
-      <categories>
-        <category>操作系统</category>
-        <category>MIT 6.s081修炼笔记</category>
-      </categories>
-  </entry>
-  <entry>
     <title>Selenium动态网页爬取技术详解</title>
     <url>/2025/07/31/%E7%88%AC%E8%99%AB/2025-07-30-Selenium%E5%8A%A8%E6%80%81%E7%BD%91%E9%A1%B5%E7%88%AC%E5%8F%96%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/</url>
     <content><![CDATA[<blockquote>
@@ -454,6 +383,77 @@
 ]]></content>
       <categories>
         <category>爬虫</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>CSS选择器与XPath</title>
+    <url>/2025/07/30/%E7%88%AC%E8%99%AB/2025-07-30-CSS%E9%80%89%E6%8B%A9%E5%99%A8%E4%B8%8EXPath/</url>
+    <content><![CDATA[<blockquote>
+<p>博主最近在构建一个用于危险化学品检测的多模态知识图谱，由于没有开源的数据集，遂只能自行进行数据的爬取。而想要进行网络资源的抓取，对于文档元素的定位是绕不开的话题。正则表达式由于写法过于冗杂，不在博主的考虑之中，接下来主要为大家介绍CSS选择器与XPath两种方法。</p>
+</blockquote>
+<h3><span id="css-xuan-ze-qi">CSS选择器</span></h3><p>CSS是层叠样式表的简称，很多的网页都使用了这个技术，因此，要用于HTML文档的样式应用CSS选择器，也被广泛用于Web抓取和前端测试中。</p>
+]]></content>
+      <categories>
+        <category>爬虫</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>前言：我与6.S081的两次相遇</title>
+    <url>/2025/07/28/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/MIT%206.s081%E4%BF%AE%E7%82%BC%E7%AC%94%E8%AE%B0/2025-07-28-%E5%89%8D%E8%A8%80%EF%BC%9A%E6%88%91%E4%B8%8E6.S081%E7%9A%84%E4%B8%A4%E6%AC%A1%E7%9B%B8%E9%81%87/</url>
+    <content><![CDATA[<h2><span id="chu-shi-yi-chang-chong-man-yi-wai-de-xie-hou">初识：一场充满意外的邂逅</span></h2><p>2023年的夏天，考研失利的我决定重新夯实计算机基础。在搜索”最好的操作系统课程”时，MIT 6.S081这个”网红课”毫无悬念地出现在所有推荐列表中。但那时的我还停留在”三无”状态：</p>
+<ul>
+<li><p>无科学上网能力</p>
+</li>
+<li><p>无Git实践经验</p>
+</li>
+<li><p>无GitHub使用认知</p>
+</li>
+</ul>
+<p>幸运的是课程官网可以直接访问，让我得以绕过第一道门槛。按照指南，我在VMware上安装了Ubuntu，开始了第一次操作系统探索之旅。</p>
+<h2><span id="ji-zhu-li-xian-ji">技术历险记</span></h2><h3><span id="wang-luo-kun-jing-yu-po-ju">网络困境与破局</span></h3><p>课程所需的工具链下载成了第一个拦路虎。感谢国内技术社区的分享精神，Gitee上的镜像仓库让我跳过了这个障碍。</p>
+<h3><span id="kai-fa-huan-jing-you-hua">开发环境优化</span></h3><p>原生vim糟糕的操作效率让我很快转向了VSCode远程开发方案。通过配置Remote-SSH插件，终于建立了舒适的学习环境。</p>
+<h3><span id="xue-xi-qu-xian-tu-po">学习曲线突破</span></h3><p>作为系统调用领域的新手，前几个实验的难度曲线令人却步。我的破局方法包括：</p>
+<ol>
+<li><p>精读课程讲义（重点标注系统调用机制）</p>
+</li>
+<li><p>交叉参考《C专家编程》理解复杂声明</p>
+</li>
+<li><p>通过《C和指针》掌握底层内存操作</p>
+</li>
+<li><p>通过题解理解题目背后的原理</p>
+</li>
+</ol>
+<h2><span id="hei-tian-e-shi-jian">黑天鹅事件</span></h2><p>那个看似平常的下午，开发环境突然崩溃的连锁反应：</p>
+<ol>
+<li>VSCode SSH连接异常 → 2. VMware虚拟机启动失败 → 3. 三次重启尝试无果 → 4. 实验环境完全丢失</li>
+</ol>
+<p>这次事故最终促使我转向了南大jyy的操作系统课程，但也埋下了重学的种子。</p>
+<h2><span id="zai-chu-fa-quan-xin-de-zheng-cheng">再出发：全新的征程</span></h2><p>2025年暑假，带着这些升级装备重新启程：</p>
+<ul>
+<li><p>🛠️ 完善的开发工具链（科学上网以及mac os开发环境）</p>
+</li>
+<li><p>🧠 更完整的知识体系（包括编译原理和计算机体系结构）</p>
+</li>
+<li><p>📝 高效的输出系统（Hexo博客+Obsidian知识库）</p>
+</li>
+</ul>
+<p>这次学习我将重点关注：</p>
+<ol>
+<li><p>实验环境的灾备方案</p>
+</li>
+<li><p>关键知识点的可视化记录</p>
+</li>
+<li><p>问题解决过程的完整归档</p>
+</li>
+</ol>
+<blockquote>
+<p>“The only real failure is the failure to learn from failure.” — Alan Kay</p>
+</blockquote>
+<p>欢迎各位同行者通过Issues或邮件交流学习心得，让我们在系统编程的深海中共同探索。</p>
+]]></content>
+      <categories>
+        <category>操作系统</category>
+        <category>MIT 6.s081修炼笔记</category>
       </categories>
   </entry>
   <entry>
