@@ -27,7 +27,7 @@
 <meta property="og:description" content="1. 需求分析与场景定义 目标：实现危险化学品的快速识别、属性查询、危害评估、应急处理推荐。  应用场景：化工生产、仓储管理、应急响应、环境监测等。  核心功能：  化学品物理&#x2F;化学属性查询（如毒性、燃点、反应性）。  多模态检索（通过文本、分子结构图、光谱图像等查询）。  危害预警与应急处理建议。      2. 数据来源与多模态数据整合结构化数据 权威数据库：  PubChem、Ch">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2025-07-31T12:19:28.000Z">
-<meta property="article:modified_time" content="2025-07-31T14:25:43.617Z">
+<meta property="article:modified_time" content="2025-08-01T04:34:38.798Z">
 <meta property="article:author" content="Xu Yuyang">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -227,7 +227,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          2.3k 字
+          2.6k 字
         
       </span>
     
@@ -238,7 +238,7 @@
         
         
         
-          20 分钟
+          22 分钟
         
       </span>
     
@@ -340,11 +340,81 @@
 </ul>
 <h3><span id="3-zhi-shi-tu-pu-jian-mo-v2"><strong>3. 知识图谱建模v2</strong></span></h3><h4><span id="ben-ti-she-ji-ontology"><strong>本体设计（Ontology）</strong></span></h4><ul>
 <li><p><strong>核心实体</strong>：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">Chemical</span>:<br>    <span class="hljs-string">&quot;&quot;&quot;化学品核心实体（结构化存储）&quot;&quot;&quot;</span><br>    <span class="hljs-built_in">id</span>: <span class="hljs-built_in">str</span>                      <span class="hljs-comment"># 唯一ID（CAS或内部ID）</span><br>    name: <span class="hljs-built_in">str</span>                    <span class="hljs-comment"># 中文名称</span><br>    en_name: <span class="hljs-built_in">str</span>                 <span class="hljs-comment"># 英文名称</span><br>    cas: <span class="hljs-type">Optional</span>[<span class="hljs-built_in">str</span>]           <span class="hljs-comment"># 允许CAS为空</span><br>    un: <span class="hljs-type">Optional</span>[<span class="hljs-built_in">str</span>]            <br>    molecular_formula: <span class="hljs-built_in">str</span>       <br>    physical_state: Enum         <br>    aliases: <span class="hljs-type">List</span>[<span class="hljs-built_in">str</span>]           <span class="hljs-comment"># 别名</span><br>    hazards: <span class="hljs-type">List</span>[Hazard]        <span class="hljs-comment"># 关联Hazard对象列表</span><br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Hazard</span>:<br>    <span class="hljs-string">&quot;&quot;&quot;危害类型详情（标准化存储）&quot;&quot;&quot;</span><br>    name: <span class="hljs-built_in">str</span>               <span class="hljs-comment"># 危害名称（如&quot;易燃液体&quot;）</span><br>    code: <span class="hljs-built_in">str</span>               <span class="hljs-comment"># GHS代码（如&quot;H225&quot;）</span><br>    severity: <span class="hljs-built_in">int</span>           <span class="hljs-comment"># 危险等级（1-5）</span><br>    icon: <span class="hljs-built_in">str</span>               <span class="hljs-comment"># 图标路径</span><br></code></pre></td></tr></table></figure>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">Chemical</span>:<br>    <span class="hljs-string">&quot;&quot;&quot;化学品核心实体（结构化存储）&quot;&quot;&quot;</span><br>    <span class="hljs-built_in">id</span>: <span class="hljs-built_in">str</span>                      <span class="hljs-comment"># 唯一ID（CAS或内部ID）</span><br>    name: <span class="hljs-built_in">str</span>                    <span class="hljs-comment"># 中文名称</span><br>    en_name: <span class="hljs-built_in">str</span>                 <span class="hljs-comment"># 英文名称</span><br>    cas: <span class="hljs-type">Optional</span>[<span class="hljs-built_in">str</span>]           <span class="hljs-comment"># 允许CAS为空</span><br>    un: <span class="hljs-type">Optional</span>[<span class="hljs-built_in">str</span>]            <br>    molecular_formula: <span class="hljs-built_in">str</span>       <br>    physical_state: Enum         <br>    aliases: <span class="hljs-type">List</span>[<span class="hljs-built_in">str</span>]           <span class="hljs-comment"># 别名</span><br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Hazard</span>:<br>    <span class="hljs-string">&quot;&quot;&quot;危害类型详情（标准化存储）&quot;&quot;&quot;</span><br>    name: <span class="hljs-built_in">str</span>               <span class="hljs-comment"># 危害名称（如&quot;易燃液体&quot;）</span><br>    code: <span class="hljs-built_in">str</span>               <span class="hljs-comment"># GHS代码（如&quot;H225&quot;）</span><br>    severity: <span class="hljs-built_in">int</span>           <span class="hljs-comment"># 危险等级（1-5）</span><br>    icon: <span class="hljs-built_in">str</span>               <span class="hljs-comment"># 图标路径</span><br></code></pre></td></tr></table></figure>
 </li>
 <li><p><strong>2. 动态证据链转为三元组：</strong></p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">EvidenceTriple</span>:<br>    <span class="hljs-string">&quot;&quot;&quot;多模态证据（动态存储）&quot;&quot;&quot;</span><br>    head: <span class="hljs-built_in">str</span>                   <span class="hljs-comment"># 关联的Chemical/Hazard等实体的ID</span><br>    relation: <span class="hljs-built_in">str</span>               <span class="hljs-comment"># 关系类型（自由定义）</span><br>    tail: <span class="hljs-built_in">str</span>                   <span class="hljs-comment"># 值或目标实体ID</span><br>    modality: <span class="hljs-built_in">str</span>               <span class="hljs-comment"># text/image</span><br>    source: <span class="hljs-built_in">str</span>                 <span class="hljs-comment"># 数据来源（URL/文件名）</span><br>    confidence: <span class="hljs-built_in">float</span>           <span class="hljs-comment"># 置信度（0-1）</span><br>    timestamp: datetime         <span class="hljs-comment"># 记录时间</span><br></code></pre></td></tr></table></figure></li>
+<li><p><strong>3.  关系的标准化设计：</strong></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">RelationType</span>(<span class="hljs-title class_ inherited__">Enum</span>):<br>    <span class="hljs-comment"># 对象属性（连接实体）</span><br>    HAS_HAZARD = <span class="hljs-string">&quot;hasHazard&quot;</span>            <span class="hljs-comment"># 化学品→危害</span><br>    HAS_COMPONENT = <span class="hljs-string">&quot;hasComponent&quot;</span>      <span class="hljs-comment"># 化学品→成分</span><br>    <span class="hljs-comment"># 数据属性（连接实体与字面量）</span><br>    HAS_MOLECULAR_WEIGHT = <span class="hljs-string">&quot;molWeight&quot;</span>  <span class="hljs-comment"># 化学品→分子量（浮点数）</span><br></code></pre></td></tr></table></figure></li>
 </ul>
+<h4><span id="guan-xi-fen-lei-ti-xi-she-ji"><strong>关系分类体系设计</strong></span></h4><p>针对化学品安全领域，采用<strong>混合分类法</strong>：结合领域标准（如GHS）与通用语义模型（如Schema.org）。</p>
+<h5><span id="1-ling-yu-zhuan-yong-guan-xi">1. <strong>领域专用关系</strong></span></h5><table>
+<thead>
+<tr>
+<th>关系类型</th>
+<th>语义定义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>hasHazard</code></td>
+<td>化学品具有的危害类型</td>
+<td>乙醇 <code>hasHazard</code> 易燃液体</td>
+</tr>
+<tr>
+<td><code>hasFirstAid</code></td>
+<td>危害对应的急救措施</td>
+<td>腐蚀性 <code>hasFirstAid</code> 用水冲洗</td>
+</tr>
+<tr>
+<td><code>regulatedUnder</code></td>
+<td>受哪些法规监管</td>
+<td>铅 <code>regulatedUnder</code> OSHA标准</td>
+</tr>
+</tbody></table>
+<h5><span id="2-tong-yong-yu-yi-guan-xi">2. <strong>通用语义关系</strong></span></h5><table>
+<thead>
+<tr>
+<th>关系类型</th>
+<th>语义定义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>hasPart</code></td>
+<td>组成关系（整体→部分）</td>
+<td>混合物 <code>hasPart</code> 苯</td>
+</tr>
+<tr>
+<td><code>causes</code></td>
+<td>因果链关系</td>
+<td>泄漏 <code>causes</code> 环境污染</td>
+</tr>
+<tr>
+<td><code>sameAs</code></td>
+<td>实体对齐</td>
+<td>CAS#64-17-5 <code>sameAs</code> 乙醇</td>
+</tr>
+</tbody></table>
+<h5><span id="3-duo-mo-tai-guan-lian-guan-xi">3. <strong>多模态关联关系</strong></span></h5><table>
+<thead>
+<tr>
+<th>关系类型</th>
+<th>用途</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>depictedBy</code></td>
+<td>实体与图像&#x2F;视频的关联</td>
+<td>乙醇 <code>depictedBy</code> GHS02图标</td>
+</tr>
+<tr>
+<td><code>describedIn</code></td>
+<td>实体与文本片段的关联</td>
+<td>爆炸性 <code>describedIn</code> MSDS第4节</td>
+</tr>
+</tbody></table>
 <h4><span id="hun-he-cun-chu-ce-lue"><strong>混合存储策略</strong></span></h4><h5><span id="1-shu-ju-fen-pei-yuan-ze"><strong>1. 数据分配原则</strong></span></h5><table>
 <thead>
 <tr>
