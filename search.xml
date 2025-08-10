@@ -818,7 +818,7 @@
     <url>/2025/08/01/Python/2025-08-01-pydantic-%E6%95%B0%E6%8D%AE%E9%AA%8C%E8%AF%81%E5%92%8C%E8%A7%A3%E6%9E%90/</url>
     <content><![CDATA[]]></content>
       <categories>
-        <category>python</category>
+        <category>Python</category>
       </categories>
   </entry>
   <entry>
@@ -890,6 +890,9 @@
 </li>
 </ul>
 ]]></content>
+      <categories>
+        <category>Golang</category>
+      </categories>
   </entry>
   <entry>
     <title>pytest-测试框架</title>
@@ -1102,7 +1105,7 @@
 </ul>
 ]]></content>
       <categories>
-        <category>python</category>
+        <category>Python</category>
       </categories>
   </entry>
 </search>
