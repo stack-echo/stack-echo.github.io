@@ -857,7 +857,7 @@
 <p>接下来我们可以使用 select 语句来接收来自 ch 或者 timeout 的数据。如果在1秒后没有数据到达 ch，则 case timeout 将被选择并且认为从 ch 读取数据的操作失败了。<br>可以看到，timeout 是一个缓冲区大小为1的管道，它允许超时的 goroutine 向这个管道发送信息并终止。（这个 goroutine）</p>
 </blockquote>
 <p>参考资料：<a href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
-<h4><span id="2-moving-on">2. Moving on</span></h4><p>这个案例的背景是同时向一个数据库的多个分表进行并发查询，而程序只需要其中任一查询结果，因此应该接收最先到达的结果。</p>
+<h4><span id="2-moving-on">2. Moving on</span></h4><p>这个案例的背景是同时向一个数据库的多个分表进行并发查询，而程序只需要其中任一查询结果，因此应该接收最先到达的结果。同时，在接收到查询结果后应该取消其他进行中的查询。</p>
 <p>可以看到，函数 Query 接收一个数据库连接的切片和要查询的字符串。然后它并行的对每一个数据库进行查询并返回接收到的最先响应的结果。</p>
 <figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">Query</span><span class="hljs-params">(conns []Conn, query <span class="hljs-type">string</span>)</span></span> Result &#123;<br>	ch := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> Result)<br>	<span class="hljs-keyword">for</span> _, conn := <span class="hljs-keyword">range</span> conns &#123;<br>		<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(c Conn)</span></span>&#123;<br>			<span class="hljs-keyword">select</span> &#123;<br>			<span class="hljs-keyword">case</span> ch &lt;- c.DoQuery(query):<br>			defult:<br>			&#125;<br>		&#125;(conn)<br>	&#125;<br>	<span class="hljs-keyword">return</span> &lt;-ch<br>&#125;<br></code></pre></td></tr></table></figure>
 
