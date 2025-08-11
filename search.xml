@@ -896,7 +896,7 @@
   </entry>
   <entry>
     <title>pytest-测试框架</title>
-    <url>/2025/08/03/Python/2025-08-01-pytest-%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6/</url>
+    <url>/2025/08/03/Python/2025-08-11-pytest-%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6/</url>
     <content><![CDATA[<blockquote>
 <p>pytest 是 Python 领域使用最广泛、功能最丰富的 <strong>第三方</strong> 单元测试框架（Unit Test Framework）。它秉承“让测试变得更简单”的理念，语法简洁、插件生态庞大，几乎已经成为 Python 事实上的测试标准。</p>
 </blockquote>
