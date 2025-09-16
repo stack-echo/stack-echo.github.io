@@ -1,0 +1,684 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Xu Yuyang">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="map是Go语言提供的一种抽象数据类型，它表示一组无序的键值对。map对value的类型没有限制，但是对key的类型有严格要求：key的类型应该严格定义了作为“ &#x3D;&#x3D; ”和“ !&#x3D; ”两个操作符的操作数时的行为，因此函数、map、切片不能作为map的key类型。  Go Map 的底层机制Go运行时使用一张哈希表来实现抽象的map类型。运行时实现了map操作的所有功">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Map">
+<meta property="og:url" content="https://stackecho.blog/2025/09/16/Golang/2025-09-16-Map/index.html">
+<meta property="og:site_name" content="StackEcho">
+<meta property="og:description" content="map是Go语言提供的一种抽象数据类型，它表示一组无序的键值对。map对value的类型没有限制，但是对key的类型有严格要求：key的类型应该严格定义了作为“ &#x3D;&#x3D; ”和“ !&#x3D; ”两个操作符的操作数时的行为，因此函数、map、切片不能作为map的key类型。  Go Map 的底层机制Go运行时使用一张哈希表来实现抽象的map类型。运行时实现了map操作的所有功">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-09-16T08:16:19.000Z">
+<meta property="article:modified_time" content="2025-09-16T11:29:23.740Z">
+<meta property="article:author" content="Xu Yuyang">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>Map - StackEcho</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"stackecho.blog","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0,"number":false,"expand_all":false,"style":"default"},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="StackEcho" type="application/atom+xml">
+</head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>StackEcho</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Map"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2025-09-16 16:16" pubdate>
+          2025年9月16日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          11 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Map</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>map是Go语言提供的一种抽象数据类型，它表示一组无序的键值对。map对value的类型没有限制，但是对key的类型有严格要求：key的类型应该严格定义了作为“ &#x3D;&#x3D; ”和“ !&#x3D; ”两个操作符的操作数时的行为，因此函数、map、切片不能作为map的key类型。</p>
+</blockquote>
+<h3><span id="go-map-de-di-ceng-ji-zhi">Go Map 的底层机制</span></h3><p>Go运行时使用一张哈希表来实现抽象的map类型。运行时实现了map操作的所有功能，包括查找、插入、删除、遍历等。在编译阶段，Go编译器会将语法层面的map操作重写成运行时对应的函数调用。这里先介绍老版本的map实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// src/runtime/map_noswiss.go</span><br><br><span class="hljs-comment">// 以下是 map_noswiss.go 中的函数签名</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">makemap</span><span class="hljs-params">(t *maptype, hint <span class="hljs-type">int</span>, h *hmap)</span></span> *hmap<br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">mapaccess1</span><span class="hljs-params">(t *maptype, h *hmap, key unsafe.Pointer)</span></span> unsafe.Pointer<br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">mapassign</span><span class="hljs-params">(t *maptype, h *hmap, key unsafe.Pointer)</span></span> unsafe.Pointer<br><br><span class="hljs-comment">// 以下是几种 map 操作背后的函数转换</span><br>m := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[keyType]valType, capacityhint)<br>m := runtime.makemap(maptype, capacityhint, m)<br><br>v := m[<span class="hljs-string">&quot;key]</span><br><span class="hljs-string">v := runtime.mapaccess1(maptype, m, &quot;</span>key)<br><br>m[<span class="hljs-string">&quot;key] = &quot;</span>value<span class="hljs-string">&quot;</span><br><span class="hljs-string">v := runtime.mapassign(maptype, m, &quot;</span>key)  <span class="hljs-comment">// v 是用于后续存储 value 的空间的地址</span><br></code></pre></td></tr></table></figure>
+
+<h4><span id="he-xin-jie-gou-hmap">核心结构 - hmap</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> hmap <span class="hljs-keyword">struct</span> &#123;<br>	count       <span class="hljs-type">int</span>             <span class="hljs-comment">// 当前 map 中元素的数量，len()的返回值</span><br>	flags       <span class="hljs-type">uint8</span><br>	B           <span class="hljs-type">uint8</span>           <span class="hljs-comment">// 桶的数量多对数</span><br>	noverflow   <span class="hljs-type">uint16</span>          <span class="hljs-comment">// 溢出桶的大概数量</span><br>	hash0       <span class="hljs-type">uint32</span>          <span class="hljs-comment">// 哈希种子，为哈希函数引入随机性</span><br>	<br>	buckets     unsafe.Pointer  <span class="hljs-comment">// 指向 2^B 个桶的数组的指针</span><br>	oldbuckets  unsafe.Pointer  <span class="hljs-comment">// 扩容时指向旧桶数组的指针</span><br>	nevacuate   uintper         <span class="hljs-comment">// 扩容进度计数器</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4><span id="tong-jie-gou-bmap">桶结构 - bmap</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> bmap <span class="hljs-keyword">struct</span> &#123;<br>    tophash [bucketCnt]<span class="hljs-type">uint8</span>     <span class="hljs-comment">// 存储键哈希的高8位，用于快速比较</span><br>    keys    [bucketCnt]keyType   <span class="hljs-comment">// 键数组</span><br>    values  [bucketCnt]valueType <span class="hljs-comment">// 值数组</span><br>    overflow *bmap               <span class="hljs-comment">// 指向溢出桶的链表</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>每个桶通常可以存储 8 个键值对</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// src/runtime/map_noswiss.go</span><br><span class="hljs-keyword">const</span>(<br>	<span class="hljs-comment">// Maximum number of key/elem pairs a bucket can hold.</span><br>	bucketCntBits = abi.OldMapBucketCountBits<br>)<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>当桶已满时，会通过<code>overfolw</code>指针式连接新的溢出桶</li>
+</ul>
+<h4><span id="gong-zuo-ji-zhi">工作机制</span></h4><h5><span id="a-ha-xi-yu-ding-wei">a) 哈希与定位：</span></h5><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 计算健应该放在哪个桶中</span><br>hash := hashFunc(key, h.hash0)<br>bucketIndex := hash &amp; (<span class="hljs-number">2</span>^h.B - <span class="hljs-number">1</span>)<br></code></pre></td></tr></table></figure>
+
+<p>可以看到，使用算出的 hash 的低位区的值用于选择桶，高位区的值用于确定桶中 key 的位置</p>
+<h5><span id="b-jie-jue-ha-xi-chong-tu">b)解决哈希冲突：</span></h5><ul>
+<li><strong>链地址法</strong>：每个桶是一个链表头，溢出桶通过指针链接</li>
+<li><strong>开放寻址</strong>：在桶内线性探测寻找空位</li>
+</ul>
+<h5><span id="c-kuo-rong-ji-zhi">c)扩容机制：</span></h5><ul>
+<li>增量扩容：当<code>count &gt; 6.5 * 2^B</code> （负载因子过高）时触发,此时运行时会建立一个两倍于现有规模的bucket数组，但真正的排空和迁移工作是在进行<code>assign</code> 和 <code>delete</code> 操作时逐步进行的。原 bucket 数组会挂在 hmap 的 oldbuckets 指针下面，直到原 buckets 数组中所有数据都迁移到新数组，原 bucktes 数组才会被释放。</li>
+<li>等量扩容：当溢出桶太多时，重新排列减少溢出桶</li>
+<li>扩容时渐近式的，每次操作旧桶时迁移1-2个桶到新桶</li>
+</ul>
+<h3><span id="bing-fa-map-de-shi-xian-fang-an">并发Map的实现方案</span></h3><p>除了简单的全局锁（<code>sync.RWMutex</code>），基于桶的并发Map主要有以下几种高级实现方式：</p>
+<h4><span id="1-fen-pian-suo-sharded-locking">1.分片锁（Sharded Locking）</span></h4><p>将一个大的 Map分成多个小 Map（分片），每个分片有自己的锁</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;sync&quot;</span><br><br><span class="hljs-comment">// 分片并发Map</span><br><span class="hljs-keyword">type</span> ConcurrentMap <span class="hljs-keyword">struct</span> &#123;<br>	shards []*MapShard<br>	shardMask <span class="hljs-type">uint32</span><br>&#125;<br><br><span class="hljs-keyword">type</span> MapShard <span class="hljs-keyword">struct</span> &#123;<br>	sync.RWMutex<br>	data <span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;<br>&#125;<br><br><span class="hljs-comment">// 创建并发Map</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">NewConcurrentMap</span><span class="hljs-params">(shardCount <span class="hljs-type">int</span>)</span></span> *ConcurrentMap &#123;<br>	<span class="hljs-comment">// 为了方便位运算，传入的shardCount需要为2的幂次</span><br>	<span class="hljs-keyword">if</span> shardCount &lt;= <span class="hljs-number">0</span>&#123;<br>		shardCount = <span class="hljs-number">32</span>  <span class="hljs-comment">// 默认32个分片</span><br>	&#125;<br>	<br>	cm := &amp;COncurrentMap&#123;<br>		shards: <span class="hljs-built_in">make</span>([]*MapShard, shardCount),<br>		shardMask: <span class="hljs-type">uint32</span>(shardCount - <span class="hljs-number">1</span>)<br>	&#125;<br>	<br>	<span class="hljs-keyword">for</span> i := <span class="hljs-keyword">range</span> cm.shards &#123;<br>		cm.shards[i] = &amp;MapShard&#123;<br>			data: <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;)<br>		&#125;<br>	&#125;<br>	<span class="hljs-keyword">return</span> cm<br>&#125;<br><br><span class="hljs-comment">// 获取键对应的分片</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(cm *ConcurrentMap)</span></span> getShard(key <span class="hljs-type">string</span>) *MapShard &#123;<br>	hash := fnv32(key)<br>	<span class="hljs-keyword">return</span> cm.shards[hash &amp; cm.shardMask]<br>&#125;<br><br><span class="hljs-comment">// 哈希函数</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">fnv32</span><span class="hljs-params">(key <span class="hljs-type">string</span>)</span></span> <span class="hljs-type">uint32</span>&#123;<br>	hash := <span class="hljs-type">uint32</span>(<span class="hljs-number">2166136261</span>)<br>	<span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; <span class="hljs-built_in">len</span>(key); i ++ &#123;<br>		hash *= <span class="hljs-number">16777619</span><br>		hash ^= <span class="hljs-type">uint32</span>(key[i])<br>	&#125;<br>	<span class="hljs-keyword">return</span> hash<br>&#125;<br><br><span class="hljs-comment">// 读取</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(cm *ConcurrentMap)</span></span> Get(key <span class="hljs-type">string</span>) (<span class="hljs-keyword">interface</span>&#123;&#125;, <span class="hljs-type">bool</span>) &#123;<br>	shard := cm.getShard(key)<br>	shard.RLock()<br>	<span class="hljs-keyword">defer</span> shard.RUnlock()<br>	value, exists := shard.data[key]<br>	<span class="hljs-keyword">return</span> value, exists<br>&#125;<br><br><span class="hljs-comment">// 写入</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(cm *ConcurrentMap)</span></span> Set(key <span class="hljs-type">string</span>, value <span class="hljs-keyword">interface</span>&#123;&#125;) &#123;<br>	shard := cm.getShard(key)<br>	shard.Lock()<br>	<span class="hljs-keyword">defer</span> shard.Unlock()<br>	shard.data[key] = value<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>读写操作限制在单个分片上竞争，大幅减少冲突</li>
+<li>实现相对简单，性能接近无锁结构</li>
+</ul>
+<h4><span id="2-du-xie-suo-kao-bei-xie-copy-on-write">2.读写锁 + 拷贝写 （Copy-On-Write）</span></h4><p>读操作完全无锁，写操作通过原子替换整个 map 实现</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;sync&quot;</span><br><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;sync/atomic&quot;</span><br><br><span class="hljs-keyword">type</span> CopyOnWriteMap <span class="hljs-keyword">struct</span> &#123;<br>	mu sync.Mutex<br>	data atomic.Value<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *CopyOnWriteMap)</span></span> Get(key <span class="hljs-type">string</span>) (<span class="hljs-keyword">interface</span>&#123;&#125;, <span class="hljs-type">bool</span>) &#123;<br>	data := m.data.Load().(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;)<br>	value, exsit := data[key]<br>	<span class="hljs-keyword">return</span> value, exists<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *CopyOnWriteMap)</span></span> Set(key <span class="hljs-type">string</span>, value <span class="hljs-keyword">interface</span>&#123;&#125;) &#123;<br>	m.mu.Lock()<br>	dafer m.mu.Unlock()<br>	<br>	oldData := m.data.Load().(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;)<br>	newData := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;, <span class="hljs-built_in">len</span>(oldData) + <span class="hljs-number">1</span>)<br>	<br>	<span class="hljs-keyword">for</span> k, v := <span class="hljs-keyword">range</span> oldData &#123;<br>		newData[k] = v<br>	&#125;<br>	newData[key] = value<br>	<br>	m.data.Store(newData)<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>适用于读多写少，且写操作不复杂的场景</li>
+<li>适用于 Map 尺寸不大的场景（否则拷贝的开销将不可承受）</li>
+</ul>
+<p>最后，Go标准库已经提供了 <code>sync.Map</code> ，来支持 Map 的并发读写；此外，也有第三方库 github.com&#x2F;orcaman&#x2F;concurrent-map 提供了分片 Map 的实现。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/Golang/" class="category-chain-item">Golang</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Map</div>
+      <div>https://stackecho.blog/2025/09/16/Golang/2025-09-16-Map/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Xu Yuyang</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2025年9月16日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2025/09/16/Golang/2025-09-16-Slice/" title="Slice">
+                        <span class="hidden-mobile">Slice</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

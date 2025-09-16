@@ -19,21 +19,21 @@
   <meta name="author" content="Xu Yuyang">
   <meta name="keywords" content="">
   
-    <meta name="description" content="对于进程间通信与资源交换这一问题，Go 使用了 channel 这一类型安全的消息队列来处理。chan 控制 goroutines 交互的能力从而创建了 Go 同步机制。同时，可以通过指定容量大小来创建无缓冲通道与缓冲通道。下面，将对这两种通道进行介绍，并给出常见的使用模式  Unbuffered Channels （无缓冲通道）无缓冲 chan 没有容量，因此在进行任何交换前都需要两个 gor">
+    <meta name="description" content="Slice（切片）是对底层数组的一个连续片段的引用，可以称其为数组的“描述符。它为我们提供了动态大小的、灵活的视图，但同时又在性能上接近于数组。  Slice的底层数据结构在 Go 的运行时中，一个 Slice 本质上是一个包含三个字段的结构体： 12345type slice struct &#123;	array unsafe.Pointer &#x2F;&#x2F; 指向底层数组的指针	len   int">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Go语法-channel机制探寻">
-<meta property="og:url" content="https://stackecho.blog/2025/08/09/Golang/2025-08-09-Go%E8%AF%AD%E6%B3%95-channel%E6%9C%BA%E5%88%B6%E6%8E%A2%E5%AF%BB/index.html">
+<meta property="og:title" content="Slice">
+<meta property="og:url" content="https://stackecho.blog/2025/09/16/Golang/2025-09-16-Slice/index.html">
 <meta property="og:site_name" content="StackEcho">
-<meta property="og:description" content="对于进程间通信与资源交换这一问题，Go 使用了 channel 这一类型安全的消息队列来处理。chan 控制 goroutines 交互的能力从而创建了 Go 同步机制。同时，可以通过指定容量大小来创建无缓冲通道与缓冲通道。下面，将对这两种通道进行介绍，并给出常见的使用模式  Unbuffered Channels （无缓冲通道）无缓冲 chan 没有容量，因此在进行任何交换前都需要两个 gor">
+<meta property="og:description" content="Slice（切片）是对底层数组的一个连续片段的引用，可以称其为数组的“描述符。它为我们提供了动态大小的、灵活的视图，但同时又在性能上接近于数组。  Slice的底层数据结构在 Go 的运行时中，一个 Slice 本质上是一个包含三个字段的结构体： 12345type slice struct &#123;	array unsafe.Pointer &#x2F;&#x2F; 指向底层数组的指针	len   int">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2025-08-09T07:57:07.000Z">
-<meta property="article:modified_time" content="2025-08-11T04:45:35.108Z">
+<meta property="article:published_time" content="2025-09-16T06:02:22.000Z">
+<meta property="article:modified_time" content="2025-09-16T11:29:23.739Z">
 <meta property="article:author" content="Xu Yuyang">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>Go语法-channel机制探寻 - StackEcho</title>
+  <title>Slice - StackEcho</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -204,7 +204,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="Go语法-channel机制探寻"></span>
+            <span id="subtitle" data-typed-text="Slice"></span>
           
         </div>
 
@@ -215,8 +215,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2025-08-09 15:57" pubdate>
-          2025年8月9日 下午
+        <time datetime="2025-09-16 14:02" pubdate>
+          2025年9月16日 下午
         </time>
       </span>
     
@@ -227,7 +227,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          1.4k 字
+          1.2k 字
         
       </span>
     
@@ -238,7 +238,7 @@
         
         
         
-          12 分钟
+          11 分钟
         
       </span>
     
@@ -275,75 +275,78 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">Go语法-channel机制探寻</h1>
+            <h1 id="seo-header">Slice</h1>
             
             
               <div class="markdown-body">
                 
                 <blockquote>
-<p>对于进程间通信与资源交换这一问题，Go 使用了 channel 这一类型安全的消息队列来处理。chan 控制 goroutines 交互的能力从而创建了 Go 同步机制。同时，可以通过指定容量大小来创建无缓冲通道与缓冲通道。<br>下面，将对这两种通道进行介绍，并给出常见的使用模式</p>
+<p><strong>Slice（切片）是对底层数组的一个连续片段的引用，可以称其为数组的“描述符</strong>。它为我们提供了动态大小的、灵活的视图，但同时又在性能上接近于数组。</p>
 </blockquote>
-<h3><span id="unbuffered-channels-wu-huan-chong-tong-dao">Unbuffered Channels （无缓冲通道）</span></h3><p>无缓冲 chan 没有容量，因此在进行任何交换前都需要两个 goroutine <strong>同时</strong>准备好。若非如此，可能会出现以下两种情况：</p>
+<h3><span id="slice-de-di-ceng-shu-ju-jie-gou">Slice的底层数据结构</span></h3><p>在 Go 的运行时中，一个 Slice 本质上是一个包含三个字段的结构体：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> slice <span class="hljs-keyword">struct</span> &#123;<br>	array unsafe.Pointer <span class="hljs-comment">// 指向底层数组的指针</span><br>	<span class="hljs-built_in">len</span>   <span class="hljs-type">int</span>            <span class="hljs-comment">// 当前切片的长度</span><br>	<span class="hljs-built_in">cap</span>   <span class="hljs-type">int</span>            <span class="hljs-comment">// 当前切片的容量</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
 <ul>
-<li><p>当 goroutine 试图将一个资源发送到一个无缓冲的通道，同时没有 goroutine 等待接收该资源时：该通道将锁住发送 goroutine 并使其等待，直到有一个 goroutine 对通道进行接收操作。</p>
+<li><code>array</code>: 一个指针，指向Slice在底层真正使用的数组，数据存储在这个数组中</li>
+<li><code>len</code>: 这个 Slice 可见和可访问的元素个数，slice[len - 1] 是最后一个有效元素</li>
+<li><code>cap</code>: 从 array 指针指向的位置开始，到底层数组末尾的元素个数，它决定了这个 Slice 最大能扩展多长而无需分配内存</li>
+</ul>
+<h3><span id="qie-pian-ji-zhi-de-you-shi">切片机制的优势</span></h3><h4><span id="1-dong-tai-kuo-rong">1.动态扩容</span></h4><p>当使用 <code>append</code> 向 Slice 添加元素，并且超过其当前容量（<code>len == cap</code>）时，Go 的运行时会自动触发扩容机制：</p>
+<ul>
+<li>分配一块新的、更大的内存空间</li>
+<li>将 Slice 原有的所有元素复制到新的数组中去</li>
+<li>将新元素追加到新数组的末尾</li>
+<li><code>array</code> 指针指向新数组，<code>len</code> 长度增加，<code>cap</code> 设置为新数组长度</li>
+</ul>
+<p><strong>扩容策略</strong>（阈值视版本而定，具体需要查阅源码 <code>//$GOROOT/src/runtime/slice.go</code> 中的定义）</p>
+<ul>
+<li>若原切片的容量小于 1024，新容量会翻倍</li>
+<li>若原切片的容量大于 1024，新容量会以 1.25 倍的速度增长，直到满足需求</li>
+</ul>
+<h4><span id="2-gao-xiao-de-nei-cun-gong-xiang-he-shi-tu">2.高效的内存共享和视图</span></h4><p>由于 Slice 只是对底层数组的一个引用，所以创建新的切片（进行切片操作）会非常高效，应为它不会复制底层的数据。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs go">originArr := [<span class="hljs-number">5</span>]<span class="hljs-type">int</span>&#123;<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>&#125;<br>silce1 := originArr[<span class="hljs-number">1</span>:<span class="hljs-number">4</span>]  <span class="hljs-comment">// len=3, cap=4 =&gt; [2, 3, 4]</span><br>slice2 := slice1[:<span class="hljs-number">2</span>]      <span class="hljs-comment">// len=2, cap=4 =&gt; [2, 3]</span><br></code></pre></td></tr></table></figure>
+
+<p>在这种情况下， <code>originArr</code>、 <code>slice1</code>、 <code>slice2</code> 共享同一个底层数组。修改其中一个切片的元素，会影响到所有共享该底层数组的其他切片和数组。</p>
+<p>这带来了以下几点优势：</p>
+<ul>
+<li><strong>避免大块数组复制</strong>：当切片作为函数参数传递给函数时，实际传递的是上面的结构体实例，因此无论切片描述的底层数组有多大，切片作为参数传递带来的性能损耗都是极小且恒定的。</li>
+<li><strong>快速创建数据视图</strong>：可以对切片进行 <code>reslice</code> ，就像上面的 slice2一样。例如，在处理一个收到的网络报文时，可以迅速切出协议头、报文体等部分进行处理，而不需要复制数据。</li>
+</ul>
+<h3><span id="3-ling-huo-de-nei-cun-bu-ju-kong-zhi">3.灵活的内存布局控制</span></h3><p>可以通过 <code>make</code> 函数精确的控制 Slice 的初始长度和容量</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 创建一个长度为 3，容量为 5 的整型切片</span><br>s := <span class="hljs-built_in">make</span>([]<span class="hljs-type">int</span>, <span class="hljs-number">3</span>, <span class="hljs-number">5</span>)  <span class="hljs-comment">// s =&gt; [0, 0, 0], len=3, cap=5</span><br></code></pre></td></tr></table></figure>
+
+<p>接下来，我使用一个基准测试来说明这一点：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;testing&quot;</span>  <br>  <br><span class="hljs-keyword">const</span> sliceSize = <span class="hljs-number">10000</span>  <br>  <br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">BenchmarkSliceInitWithoutCap</span><span class="hljs-params">(b *testing.B)</span></span> &#123;  <br>    <span class="hljs-keyword">for</span> n := <span class="hljs-number">0</span>; n &lt; b.N; n++ &#123;  <br>       sl := <span class="hljs-built_in">make</span>([]<span class="hljs-type">int</span>, <span class="hljs-number">0</span>)  <br>       <span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; sliceSize; i++ &#123;  <br>          sl = <span class="hljs-built_in">append</span>(sl, i)  <br>       &#125;  <br>    &#125;  <br>&#125;  <br>  <br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">BenchmarkSliceInitWithCap</span><span class="hljs-params">(b *testing.B)</span></span> &#123;  <br>    <span class="hljs-keyword">for</span> n := <span class="hljs-number">0</span>; n &lt; b.N; n++ &#123;  <br>       sl := <span class="hljs-built_in">make</span>([]<span class="hljs-type">int</span>, <span class="hljs-number">0</span>, sliceSize)  <br>       <span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; sliceSize; i++ &#123;  <br>          sl = <span class="hljs-built_in">append</span>(sl, i)  <br>       &#125;  <br>    &#125;  <br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>下面是执行结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs bash">(base) xuyuyang % go <span class="hljs-built_in">test</span> -benchmem -bench=. slice_benchmark_test.go<br>goos: darwin<br>goarch: arm64<br>cpu: Apple M3<br>BenchmarkSliceInitWithoutCap-8             <br>51662             22170 ns/op          357629 B/op         19 allocs/op<br>BenchmarkSliceInitWithCap-8               <br>210564              5757 ns/op           81920 B/op          1 allocs/op<br>PASS<br>ok      command-line-arguments  3.039s<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><p><strong><code>BenchmarkSliceInitWithoutCap-8</code></strong>:</p>
+<ul>
+<li><p>执行了 51,662 次，每次操作平均耗时 <strong>22,170 ns</strong> (约 0.022 ms)</p>
 </li>
-<li><p>当 goroutine 尝试从无缓冲通道接收，但此时没有一个 goroutine 等待发送资源时：该通道将锁住接收 goroutine 并使其等待，知道有一个 goroutine 准备将一个资源发送到通道。</p>
+<li><p>每次操作分配了约 <strong>357.6 KB</strong> 的内存</p>
+</li>
+<li><p>每次操作发生了 <strong>19 次</strong> 内存分配 (allocs)</p>
 </li>
 </ul>
-<p>根据上面的两种情况可以看出，发送和接收的 goroutine 中的任意一方准备好时，都必须等待对方也准备好才能进行资源的交换。因此，无缓冲通道的本质是<strong>保证双方的同步</strong>。</p>
-<p>还有一点值得注意：对于无缓冲通道，发送方将持续阻塞直到接收方从通道中接收到了传入的值。这保证了接收一定先于发送发生，由此可以 100 % 保证传入的值被收到，但代价是无法预测阻塞（延迟）的时间。</p>
-<h3><span id="buffered-channels-huan-chong-tong-dao">Buffered Channels（缓冲通道）</span></h3><p>与无缓冲通道相比，缓冲通道具有容量，因此情况也会有所不同：</p>
-<ul>
-<li><p>当 goroutine 试图将资源发送到缓冲通道，且该通道已满时：该通道将锁住 goroutine 并使其等待，直到缓冲区重新有可用空间，（有 goroutine 消费了通道中已有的资源）此时发送可立即进行，之前被锁住的 goroutine 可以继续向通道发送资源，直到通道空间再次装满。</p>
 </li>
-<li><p>当 goroutine 尝试从缓冲通道接收数据，而通道为空时：该通道将锁住 goroutine 并使其等待，直到有资源被发送进这个通道。</p>
+<li><p><strong><code>BenchmarkSliceInitWithCap-8</code></strong>:</p>
+<ul>
+<li><p>执行了 210,564 次，每次操作平均耗时 <strong>5,757 ns</strong> (约 0.006 ms) <strong>-&gt; 快 3.85 倍！</strong></p>
+</li>
+<li><p>每次操作分配了约 <strong>81.9 KB</strong> 的内存 <strong>-&gt; 内存减少 77%！</strong></p>
+</li>
+<li><p>每次操作发生了 <strong>1 次</strong> 内存分配 (allocs) <strong>-&gt; 分配次数减少 94%！</strong></p>
 </li>
 </ul>
-<p>可以看出，在 chan 创建过程中定义的缓冲区大小可能会极大的影响程序性能。此时通常需要使用 Benchmark 对不同大小的缓冲区做一个基准测试，来选取大小合适的缓冲区（并不是说 buffer 越大，程序的性能一定越好，这视发送与接收方的情况而定）。</p>
-<p>此外，与无缓冲通道相比，缓冲通道的发送先于接收发生。这样做的好处是延迟更小，而代价是不能保证数据到达，可以这样说：越大的 buffer，越小的保障到达。</p>
-<h3><span id="shi-yong-tong-dao-de-chang-jian-mo-shi">使用通道的常见模式</span></h3><h4><span id="1-timing-out">1. Timing out</span></h4><p>使用 channels 做一个超时控制，官方案例如下：</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs golang">timeout := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-type">bool</span>, <span class="hljs-number">1</span>)<br><span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>	time.Sleep(<span class="hljs-number">1</span> * time.Second)<br>	timeout &lt;- <span class="hljs-literal">true</span><br>&#125;<br></code></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们希望从管道 ch 中接收数据，但我们也希望最多等待1秒钟。为此，我们应该在将数据发送到 ch 前先创建一个信号的管道，并且运行一个 goroutine 进行1秒钟的休眠。</p>
-</blockquote>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-keyword">select</span> &#123;<br><span class="hljs-keyword">case</span> &lt;-ch:<br>	<span class="hljs-comment">// a read from ch has occurred</span><br><span class="hljs-keyword">case</span> &lt;-timeout:<br>	<span class="hljs-comment">// the read from ch has time out</span><br>&#125;<br></code></pre></td></tr></table></figure>
-
-<blockquote>
-<p>接下来我们可以使用 select 语句来接收来自 ch 或者 timeout 的数据。如果在1秒后没有数据到达 ch，则 case timeout 将被选择并且认为从 ch 读取数据的操作失败了。<br>可以看到，timeout 是一个缓冲区大小为1的管道，它允许超时的 goroutine 向这个管道发送信息并终止。（这个 goroutine）</p>
-</blockquote>
-<p>参考资料：<a target="_blank" rel="noopener" href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
-<h4><span id="2-moving-on">2. Moving on</span></h4><p>这个案例的背景是同时向一个数据库的多个分表进行并发查询，而程序只需要其中任一查询结果，因此应该接收最先到达的结果。同时，在接收到查询结果后应该取消其他进行中的查询。</p>
-<p>可以看到，函数 Query 接收一个数据库连接的切片和要查询的字符串。然后它并行的对每一个数据库进行查询并返回接收到的最先响应的结果。</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">Query</span><span class="hljs-params">(conns []Conn, query <span class="hljs-type">string</span>)</span></span> Result &#123;<br>	ch := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> Result)<br>	<span class="hljs-keyword">for</span> _, conn := <span class="hljs-keyword">range</span> conns &#123;<br>		<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(c Conn)</span></span>&#123;<br>			<span class="hljs-keyword">select</span> &#123;<br>			<span class="hljs-keyword">case</span> ch &lt;- c.DoQuery(query):<br>			defult:<br>			&#125;<br>		&#125;(conn)<br>	&#125;<br>	<span class="hljs-keyword">return</span> &lt;-ch<br>&#125;<br></code></pre></td></tr></table></figure>
-
-<blockquote>
-<p>当第一个查询结果被发送进 ch 后，其他的查询将会通过 select 语句的 default 退出。</p>
-</blockquote>
-<p>参考资料：<a target="_blank" rel="noopener" href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
-<h4><span id="3-pipeline">3. Pipeline</span></h4><p>流水线模式最经典的例子应该就是素数筛了，代码如下：</p>
-<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br></code></pre></td></tr></table></figure>
-
-
-<h4><span id="4-fan-out-fan-in">4. Fan-out, Fan-in</span></h4><h4><span id="5-cancellation">5. Cancellation</span></h4><h4><span id="6-contex">6. Contex</span></h4><h3><span id="she-ji-yuan-ze">设计原则</span></h3><ul>
-<li><p>如果任意一个向通道的发送可以导致发送 goroutine 被阻塞，你需要考虑：</p>
-<ul>
-<li>不能使用缓冲数大于1的通道（如果需要，你必须能说明这样做的理由）</li>
-<li>必须知道当发送 goroutine 被阻塞时会发生什么（是否需要处理 &#x2F; 怎么处理 &#x2F; 是否符合预期）</li>
-</ul>
 </li>
-<li><p>如果任意一个向通道的发送不会导致发送 goroutine 被阻塞，你需要考虑：</p>
-<ul>
-<li>你为每一个发送设有额外的缓冲区（比如 Fan Out 模式）</li>
-<li>你能对处于最大容量的缓冲区进行相应的处理（是将数据丢弃还是继续等待）</li>
 </ul>
-</li>
-<li><p>对于缓冲来说，少即是多（Less is more）：</p>
-<ul>
-<li>不要将缓冲的大小与性能挂钩</li>
-<li>缓冲可以减少 goroutine 唤醒的成本</li>
-</ul>
-</li>
+<h3><span id="zhu-yi-shi-xiang">注意事项</span></h3><ul>
+<li><strong>意外的修改</strong>：多个切片可能共享同一个底层数组，因此在修改切片元素时需要注意是否会影响其他切片。若不希望对其他切片产生影响，需要使用<code>copy</code> 函数进行显示复制。</li>
+<li><strong>”内存泄露“</strong>：一个引用着很大底层数组的切片可能只使用其中的很小一部分，但切片的引用会导致这个数组无法被GC。因此可以在使用完大数组后，将需要的数据复制到一个独立的切片中进行使用。</li>
+<li><strong>扩容导致的”断链“</strong>：<code>append</code> 操作可能会导致扩容，扩容后会使用一个全新的底层数组。此时，新的切片与之前基于旧数组的切片就不再共享同一底层数组了。对它们的修改将互不影响。</li>
 </ul>
 
                 
@@ -383,8 +386,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>Go语法-channel机制探寻</div>
-      <div>https://stackecho.blog/2025/08/09/Golang/2025-08-09-Go语法-channel机制探寻/</div>
+      <div>Slice</div>
+      <div>https://stackecho.blog/2025/09/16/Golang/2025-09-16-Slice/</div>
     </div>
     <div class="license-meta">
       
@@ -396,7 +399,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2025年8月9日</div>
+          <div>2025年9月16日</div>
         </div>
       
       
@@ -428,12 +431,18 @@
                   <article class="post-prev col-6">
                     
                     
+                      <a href="/2025/09/16/Golang/2025-09-16-Map/" title="Map">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Map</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
                   </article>
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2025/08/03/Python/2025-08-11-pytest-%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6/" title="pytest-测试框架">
-                        <span class="hidden-mobile">pytest-测试框架</span>
+                      <a href="/2025/08/09/Golang/2025-08-09-Go%E5%B9%B6%E5%8F%91-channel%E6%9C%BA%E5%88%B6%E6%8E%A2%E5%AF%BB/" title="Go并发-channel机制探寻">
+                        <span class="hidden-mobile">Go并发-channel机制探寻</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>

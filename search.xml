@@ -1,6 +1,431 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Go并发-channel机制探寻</title>
+    <url>/2025/08/09/Golang/2025-08-09-Go%E5%B9%B6%E5%8F%91-channel%E6%9C%BA%E5%88%B6%E6%8E%A2%E5%AF%BB/</url>
+    <content><![CDATA[<blockquote>
+<p>对于进程间通信与资源交换这一问题，Go 使用了 channel 这一类型安全的消息队列来处理。chan 控制 goroutines 交互的能力从而创建了 Go 同步机制。同时，可以通过指定容量大小来创建无缓冲通道与缓冲通道。<br>下面，将对这两种通道进行介绍，并给出常见的使用模式</p>
+</blockquote>
+<h3><span id="unbuffered-channels-wu-huan-chong-tong-dao">Unbuffered Channels （无缓冲通道）</span></h3><p>无缓冲 chan 没有容量，因此在进行任何交换前都需要两个 goroutine <strong>同时</strong>准备好。若非如此，可能会出现以下两种情况：</p>
+<ul>
+<li><p>当 goroutine 试图将一个资源发送到一个无缓冲的通道，同时没有 goroutine 等待接收该资源时：该通道将锁住发送 goroutine 并使其等待，直到有一个 goroutine 对通道进行接收操作。</p>
+</li>
+<li><p>当 goroutine 尝试从无缓冲通道接收，但此时没有一个 goroutine 等待发送资源时：该通道将锁住接收 goroutine 并使其等待，知道有一个 goroutine 准备将一个资源发送到通道。</p>
+</li>
+</ul>
+<p>根据上面的两种情况可以看出，发送和接收的 goroutine 中的任意一方准备好时，都必须等待对方也准备好才能进行资源的交换。因此，无缓冲通道的本质是<strong>保证双方的同步</strong>。</p>
+<p>还有一点值得注意：对于无缓冲通道，发送方将持续阻塞直到接收方从通道中接收到了传入的值。这保证了接收一定先于发送发生，由此可以 100 % 保证传入的值被收到，但代价是无法预测阻塞（延迟）的时间。</p>
+<h3><span id="buffered-channels-huan-chong-tong-dao">Buffered Channels（缓冲通道）</span></h3><p>与无缓冲通道相比，缓冲通道具有容量，因此情况也会有所不同：</p>
+<ul>
+<li><p>当 goroutine 试图将资源发送到缓冲通道，且该通道已满时：该通道将锁住 goroutine 并使其等待，直到缓冲区重新有可用空间，（有 goroutine 消费了通道中已有的资源）此时发送可立即进行，之前被锁住的 goroutine 可以继续向通道发送资源，直到通道空间再次装满。</p>
+</li>
+<li><p>当 goroutine 尝试从缓冲通道接收数据，而通道为空时：该通道将锁住 goroutine 并使其等待，直到有资源被发送进这个通道。</p>
+</li>
+</ul>
+<p>可以看出，在 chan 创建过程中定义的缓冲区大小可能会极大的影响程序性能。此时通常需要使用 Benchmark 对不同大小的缓冲区做一个基准测试，来选取大小合适的缓冲区（并不是说 buffer 越大，程序的性能一定越好，这视发送与接收方的情况而定）。</p>
+<p>此外，与无缓冲通道相比，缓冲通道的发送先于接收发生。这样做的好处是延迟更小，而代价是不能保证数据到达，可以这样说：越大的 buffer，越小的保障到达。</p>
+<h3><span id="shi-yong-tong-dao-de-chang-jian-mo-shi">使用通道的常见模式</span></h3><h4><span id="1-timing-out">1. Timing out</span></h4><p>使用 channels 做一个超时控制，官方案例如下：</p>
+<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang">timeout := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-type">bool</span>, <span class="hljs-number">1</span>)<br><span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>	time.Sleep(<span class="hljs-number">1</span> * time.Second)<br>	timeout &lt;- <span class="hljs-literal">true</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们希望从管道 ch 中接收数据，但我们也希望最多等待1秒钟。为此，我们应该在将数据发送到 ch 前先创建一个信号的管道，并且运行一个 goroutine 进行1秒钟的休眠。</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><span class="hljs-keyword">select</span> &#123;<br><span class="hljs-keyword">case</span> &lt;-ch:<br>	<span class="hljs-comment">// a read from ch has occurred</span><br><span class="hljs-keyword">case</span> &lt;-timeout:<br>	<span class="hljs-comment">// the read from ch has time out</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>接下来我们可以使用 select 语句来接收来自 ch 或者 timeout 的数据。如果在1秒后没有数据到达 ch，则 case timeout 将被选择并且认为从 ch 读取数据的操作失败了。<br>可以看到，timeout 是一个缓冲区大小为1的管道，它允许超时的 goroutine 向这个管道发送信息并终止。（这个 goroutine）</p>
+</blockquote>
+<p>参考资料：<a href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
+<h4><span id="2-moving-on">2. Moving on</span></h4><p>这个案例的背景是同时向一个数据库的多个分表进行并发查询，而程序只需要其中任一查询结果，因此应该接收最先到达的结果。同时，在接收到查询结果后应该取消其他进行中的查询。</p>
+<p>可以看到，函数 Query 接收一个数据库连接的切片和要查询的字符串。然后它并行的对每一个数据库进行查询并返回接收到的最先响应的结果。</p>
+<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">Query</span><span class="hljs-params">(conns []Conn, query <span class="hljs-type">string</span>)</span></span> Result &#123;<br>	ch := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> Result)<br>	<span class="hljs-keyword">for</span> _, conn := <span class="hljs-keyword">range</span> conns &#123;<br>		<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(c Conn)</span></span>&#123;<br>			<span class="hljs-keyword">select</span> &#123;<br>			<span class="hljs-keyword">case</span> ch &lt;- c.DoQuery(query):<br>			defult:<br>			&#125;<br>		&#125;(conn)<br>	&#125;<br>	<span class="hljs-keyword">return</span> &lt;-ch<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>当第一个查询结果被发送进 ch 后，其他的查询将会通过 select 语句的 default 退出。</p>
+</blockquote>
+<p>参考资料：<a href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
+<h4><span id="3-pipeline">3. Pipeline</span></h4><p>流水线模式最经典的例子应该就是素数筛了，代码如下：</p>
+<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><br></code></pre></td></tr></table></figure>
+
+
+<h4><span id="4-fan-out-fan-in">4. Fan-out, Fan-in</span></h4><h4><span id="5-cancellation">5. Cancellation</span></h4><h4><span id="6-contex">6. Contex</span></h4><h3><span id="she-ji-yuan-ze">设计原则</span></h3><ul>
+<li><p>如果任意一个向通道的发送可以导致发送 goroutine 被阻塞，你需要考虑：</p>
+<ul>
+<li>不能使用缓冲数大于1的通道（如果需要，你必须能说明这样做的理由）</li>
+<li>必须知道当发送 goroutine 被阻塞时会发生什么（是否需要处理 &#x2F; 怎么处理 &#x2F; 是否符合预期）</li>
+</ul>
+</li>
+<li><p>如果任意一个向通道的发送不会导致发送 goroutine 被阻塞，你需要考虑：</p>
+<ul>
+<li>你为每一个发送设有额外的缓冲区（比如 Fan Out 模式）</li>
+<li>你能对处于最大容量的缓冲区进行相应的处理（是将数据丢弃还是继续等待）</li>
+</ul>
+</li>
+<li><p>对于缓冲来说，少即是多（Less is more）：</p>
+<ul>
+<li>不要将缓冲的大小与性能挂钩</li>
+<li>缓冲可以减少 goroutine 唤醒的成本</li>
+</ul>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Golang</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Map</title>
+    <url>/2025/09/16/Golang/2025-09-16-Map/</url>
+    <content><![CDATA[<blockquote>
+<p>map是Go语言提供的一种抽象数据类型，它表示一组无序的键值对。map对value的类型没有限制，但是对key的类型有严格要求：key的类型应该严格定义了作为“ &#x3D;&#x3D; ”和“ !&#x3D; ”两个操作符的操作数时的行为，因此函数、map、切片不能作为map的key类型。</p>
+</blockquote>
+<h3><span id="go-map-de-di-ceng-ji-zhi">Go Map 的底层机制</span></h3><p>Go运行时使用一张哈希表来实现抽象的map类型。运行时实现了map操作的所有功能，包括查找、插入、删除、遍历等。在编译阶段，Go编译器会将语法层面的map操作重写成运行时对应的函数调用。这里先介绍老版本的map实现：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// src/runtime/map_noswiss.go</span><br><br><span class="hljs-comment">// 以下是 map_noswiss.go 中的函数签名</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">makemap</span><span class="hljs-params">(t *maptype, hint <span class="hljs-type">int</span>, h *hmap)</span></span> *hmap<br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">mapaccess1</span><span class="hljs-params">(t *maptype, h *hmap, key unsafe.Pointer)</span></span> unsafe.Pointer<br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">mapassign</span><span class="hljs-params">(t *maptype, h *hmap, key unsafe.Pointer)</span></span> unsafe.Pointer<br><br><span class="hljs-comment">// 以下是几种 map 操作背后的函数转换</span><br>m := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[keyType]valType, capacityhint)<br>m := runtime.makemap(maptype, capacityhint, m)<br><br>v := m[<span class="hljs-string">&quot;key]</span><br><span class="hljs-string">v := runtime.mapaccess1(maptype, m, &quot;</span>key)<br><br>m[<span class="hljs-string">&quot;key] = &quot;</span>value<span class="hljs-string">&quot;</span><br><span class="hljs-string">v := runtime.mapassign(maptype, m, &quot;</span>key)  <span class="hljs-comment">// v 是用于后续存储 value 的空间的地址</span><br></code></pre></td></tr></table></figure>
+
+<h4><span id="he-xin-jie-gou-hmap">核心结构 - hmap</span></h4><figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> hmap <span class="hljs-keyword">struct</span> &#123;<br>	count       <span class="hljs-type">int</span>             <span class="hljs-comment">// 当前 map 中元素的数量，len()的返回值</span><br>	flags       <span class="hljs-type">uint8</span><br>	B           <span class="hljs-type">uint8</span>           <span class="hljs-comment">// 桶的数量多对数</span><br>	noverflow   <span class="hljs-type">uint16</span>          <span class="hljs-comment">// 溢出桶的大概数量</span><br>	hash0       <span class="hljs-type">uint32</span>          <span class="hljs-comment">// 哈希种子，为哈希函数引入随机性</span><br>	<br>	buckets     unsafe.Pointer  <span class="hljs-comment">// 指向 2^B 个桶的数组的指针</span><br>	oldbuckets  unsafe.Pointer  <span class="hljs-comment">// 扩容时指向旧桶数组的指针</span><br>	nevacuate   uintper         <span class="hljs-comment">// 扩容进度计数器</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4><span id="tong-jie-gou-bmap">桶结构 - bmap</span></h4><figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> bmap <span class="hljs-keyword">struct</span> &#123;<br>    tophash [bucketCnt]<span class="hljs-type">uint8</span>     <span class="hljs-comment">// 存储键哈希的高8位，用于快速比较</span><br>    keys    [bucketCnt]keyType   <span class="hljs-comment">// 键数组</span><br>    values  [bucketCnt]valueType <span class="hljs-comment">// 值数组</span><br>    overflow *bmap               <span class="hljs-comment">// 指向溢出桶的链表</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>每个桶通常可以存储 8 个键值对</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// src/runtime/map_noswiss.go</span><br><span class="hljs-keyword">const</span>(<br>	<span class="hljs-comment">// Maximum number of key/elem pairs a bucket can hold.</span><br>	bucketCntBits = abi.OldMapBucketCountBits<br>)<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>当桶已满时，会通过<code>overfolw</code>指针式连接新的溢出桶</li>
+</ul>
+<h4><span id="gong-zuo-ji-zhi">工作机制</span></h4><h5><span id="a-ha-xi-yu-ding-wei">a) 哈希与定位：</span></h5><figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 计算健应该放在哪个桶中</span><br>hash := hashFunc(key, h.hash0)<br>bucketIndex := hash &amp; (<span class="hljs-number">2</span>^h.B - <span class="hljs-number">1</span>)<br></code></pre></td></tr></table></figure>
+
+<p>可以看到，使用算出的 hash 的低位区的值用于选择桶，高位区的值用于确定桶中 key 的位置</p>
+<h5><span id="b-jie-jue-ha-xi-chong-tu">b)解决哈希冲突：</span></h5><ul>
+<li><strong>链地址法</strong>：每个桶是一个链表头，溢出桶通过指针链接</li>
+<li><strong>开放寻址</strong>：在桶内线性探测寻找空位</li>
+</ul>
+<h5><span id="c-kuo-rong-ji-zhi">c)扩容机制：</span></h5><ul>
+<li>增量扩容：当<code>count &gt; 6.5 * 2^B</code> （负载因子过高）时触发,此时运行时会建立一个两倍于现有规模的bucket数组，但真正的排空和迁移工作是在进行<code>assign</code> 和 <code>delete</code> 操作时逐步进行的。原 bucket 数组会挂在 hmap 的 oldbuckets 指针下面，直到原 buckets 数组中所有数据都迁移到新数组，原 bucktes 数组才会被释放。</li>
+<li>等量扩容：当溢出桶太多时，重新排列减少溢出桶</li>
+<li>扩容时渐近式的，每次操作旧桶时迁移1-2个桶到新桶</li>
+</ul>
+<h3><span id="bing-fa-map-de-shi-xian-fang-an">并发Map的实现方案</span></h3><p>除了简单的全局锁（<code>sync.RWMutex</code>），基于桶的并发Map主要有以下几种高级实现方式：</p>
+<h4><span id="1-fen-pian-suo-sharded-locking">1.分片锁（Sharded Locking）</span></h4><p>将一个大的 Map分成多个小 Map（分片），每个分片有自己的锁</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;sync&quot;</span><br><br><span class="hljs-comment">// 分片并发Map</span><br><span class="hljs-keyword">type</span> ConcurrentMap <span class="hljs-keyword">struct</span> &#123;<br>	shards []*MapShard<br>	shardMask <span class="hljs-type">uint32</span><br>&#125;<br><br><span class="hljs-keyword">type</span> MapShard <span class="hljs-keyword">struct</span> &#123;<br>	sync.RWMutex<br>	data <span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;<br>&#125;<br><br><span class="hljs-comment">// 创建并发Map</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">NewConcurrentMap</span><span class="hljs-params">(shardCount <span class="hljs-type">int</span>)</span></span> *ConcurrentMap &#123;<br>	<span class="hljs-comment">// 为了方便位运算，传入的shardCount需要为2的幂次</span><br>	<span class="hljs-keyword">if</span> shardCount &lt;= <span class="hljs-number">0</span>&#123;<br>		shardCount = <span class="hljs-number">32</span>  <span class="hljs-comment">// 默认32个分片</span><br>	&#125;<br>	<br>	cm := &amp;COncurrentMap&#123;<br>		shards: <span class="hljs-built_in">make</span>([]*MapShard, shardCount),<br>		shardMask: <span class="hljs-type">uint32</span>(shardCount - <span class="hljs-number">1</span>)<br>	&#125;<br>	<br>	<span class="hljs-keyword">for</span> i := <span class="hljs-keyword">range</span> cm.shards &#123;<br>		cm.shards[i] = &amp;MapShard&#123;<br>			data: <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;)<br>		&#125;<br>	&#125;<br>	<span class="hljs-keyword">return</span> cm<br>&#125;<br><br><span class="hljs-comment">// 获取键对应的分片</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(cm *ConcurrentMap)</span></span> getShard(key <span class="hljs-type">string</span>) *MapShard &#123;<br>	hash := fnv32(key)<br>	<span class="hljs-keyword">return</span> cm.shards[hash &amp; cm.shardMask]<br>&#125;<br><br><span class="hljs-comment">// 哈希函数</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">fnv32</span><span class="hljs-params">(key <span class="hljs-type">string</span>)</span></span> <span class="hljs-type">uint32</span>&#123;<br>	hash := <span class="hljs-type">uint32</span>(<span class="hljs-number">2166136261</span>)<br>	<span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; <span class="hljs-built_in">len</span>(key); i ++ &#123;<br>		hash *= <span class="hljs-number">16777619</span><br>		hash ^= <span class="hljs-type">uint32</span>(key[i])<br>	&#125;<br>	<span class="hljs-keyword">return</span> hash<br>&#125;<br><br><span class="hljs-comment">// 读取</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(cm *ConcurrentMap)</span></span> Get(key <span class="hljs-type">string</span>) (<span class="hljs-keyword">interface</span>&#123;&#125;, <span class="hljs-type">bool</span>) &#123;<br>	shard := cm.getShard(key)<br>	shard.RLock()<br>	<span class="hljs-keyword">defer</span> shard.RUnlock()<br>	value, exists := shard.data[key]<br>	<span class="hljs-keyword">return</span> value, exists<br>&#125;<br><br><span class="hljs-comment">// 写入</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(cm *ConcurrentMap)</span></span> Set(key <span class="hljs-type">string</span>, value <span class="hljs-keyword">interface</span>&#123;&#125;) &#123;<br>	shard := cm.getShard(key)<br>	shard.Lock()<br>	<span class="hljs-keyword">defer</span> shard.Unlock()<br>	shard.data[key] = value<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>读写操作限制在单个分片上竞争，大幅减少冲突</li>
+<li>实现相对简单，性能接近无锁结构</li>
+</ul>
+<h4><span id="2-du-xie-suo-kao-bei-xie-copy-on-write">2.读写锁 + 拷贝写 （Copy-On-Write）</span></h4><p>读操作完全无锁，写操作通过原子替换整个 map 实现</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;sync&quot;</span><br><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;sync/atomic&quot;</span><br><br><span class="hljs-keyword">type</span> CopyOnWriteMap <span class="hljs-keyword">struct</span> &#123;<br>	mu sync.Mutex<br>	data atomic.Value<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *CopyOnWriteMap)</span></span> Get(key <span class="hljs-type">string</span>) (<span class="hljs-keyword">interface</span>&#123;&#125;, <span class="hljs-type">bool</span>) &#123;<br>	data := m.data.Load().(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;)<br>	value, exsit := data[key]<br>	<span class="hljs-keyword">return</span> value, exists<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *CopyOnWriteMap)</span></span> Set(key <span class="hljs-type">string</span>, value <span class="hljs-keyword">interface</span>&#123;&#125;) &#123;<br>	m.mu.Lock()<br>	dafer m.mu.Unlock()<br>	<br>	oldData := m.data.Load().(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;)<br>	newData := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;, <span class="hljs-built_in">len</span>(oldData) + <span class="hljs-number">1</span>)<br>	<br>	<span class="hljs-keyword">for</span> k, v := <span class="hljs-keyword">range</span> oldData &#123;<br>		newData[k] = v<br>	&#125;<br>	newData[key] = value<br>	<br>	m.data.Store(newData)<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>适用于读多写少，且写操作不复杂的场景</li>
+<li>适用于 Map 尺寸不大的场景（否则拷贝的开销将不可承受）</li>
+</ul>
+<p>最后，Go标准库已经提供了 <code>sync.Map</code> ，来支持 Map 的并发读写；此外，也有第三方库 github.com&#x2F;orcaman&#x2F;concurrent-map 提供了分片 Map 的实现。</p>
+]]></content>
+      <categories>
+        <category>Golang</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Slice</title>
+    <url>/2025/09/16/Golang/2025-09-16-Slice/</url>
+    <content><![CDATA[<blockquote>
+<p><strong>Slice（切片）是对底层数组的一个连续片段的引用，可以称其为数组的“描述符</strong>。它为我们提供了动态大小的、灵活的视图，但同时又在性能上接近于数组。</p>
+</blockquote>
+<h3><span id="slice-de-di-ceng-shu-ju-jie-gou">Slice的底层数据结构</span></h3><p>在 Go 的运行时中，一个 Slice 本质上是一个包含三个字段的结构体：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> slice <span class="hljs-keyword">struct</span> &#123;<br>	array unsafe.Pointer <span class="hljs-comment">// 指向底层数组的指针</span><br>	<span class="hljs-built_in">len</span>   <span class="hljs-type">int</span>            <span class="hljs-comment">// 当前切片的长度</span><br>	<span class="hljs-built_in">cap</span>   <span class="hljs-type">int</span>            <span class="hljs-comment">// 当前切片的容量</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><code>array</code>: 一个指针，指向Slice在底层真正使用的数组，数据存储在这个数组中</li>
+<li><code>len</code>: 这个 Slice 可见和可访问的元素个数，slice[len - 1] 是最后一个有效元素</li>
+<li><code>cap</code>: 从 array 指针指向的位置开始，到底层数组末尾的元素个数，它决定了这个 Slice 最大能扩展多长而无需分配内存</li>
+</ul>
+<h3><span id="qie-pian-ji-zhi-de-you-shi">切片机制的优势</span></h3><h4><span id="1-dong-tai-kuo-rong">1.动态扩容</span></h4><p>当使用 <code>append</code> 向 Slice 添加元素，并且超过其当前容量（<code>len == cap</code>）时，Go 的运行时会自动触发扩容机制：</p>
+<ul>
+<li>分配一块新的、更大的内存空间</li>
+<li>将 Slice 原有的所有元素复制到新的数组中去</li>
+<li>将新元素追加到新数组的末尾</li>
+<li><code>array</code> 指针指向新数组，<code>len</code> 长度增加，<code>cap</code> 设置为新数组长度</li>
+</ul>
+<p><strong>扩容策略</strong>（阈值视版本而定，具体需要查阅源码 <code>//$GOROOT/src/runtime/slice.go</code> 中的定义）</p>
+<ul>
+<li>若原切片的容量小于 1024，新容量会翻倍</li>
+<li>若原切片的容量大于 1024，新容量会以 1.25 倍的速度增长，直到满足需求</li>
+</ul>
+<h4><span id="2-gao-xiao-de-nei-cun-gong-xiang-he-shi-tu">2.高效的内存共享和视图</span></h4><p>由于 Slice 只是对底层数组的一个引用，所以创建新的切片（进行切片操作）会非常高效，应为它不会复制底层的数据。</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go">originArr := [<span class="hljs-number">5</span>]<span class="hljs-type">int</span>&#123;<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>&#125;<br>silce1 := originArr[<span class="hljs-number">1</span>:<span class="hljs-number">4</span>]  <span class="hljs-comment">// len=3, cap=4 =&gt; [2, 3, 4]</span><br>slice2 := slice1[:<span class="hljs-number">2</span>]      <span class="hljs-comment">// len=2, cap=4 =&gt; [2, 3]</span><br></code></pre></td></tr></table></figure>
+
+<p>在这种情况下， <code>originArr</code>、 <code>slice1</code>、 <code>slice2</code> 共享同一个底层数组。修改其中一个切片的元素，会影响到所有共享该底层数组的其他切片和数组。</p>
+<p>这带来了以下几点优势：</p>
+<ul>
+<li><strong>避免大块数组复制</strong>：当切片作为函数参数传递给函数时，实际传递的是上面的结构体实例，因此无论切片描述的底层数组有多大，切片作为参数传递带来的性能损耗都是极小且恒定的。</li>
+<li><strong>快速创建数据视图</strong>：可以对切片进行 <code>reslice</code> ，就像上面的 slice2一样。例如，在处理一个收到的网络报文时，可以迅速切出协议头、报文体等部分进行处理，而不需要复制数据。</li>
+</ul>
+<h3><span id="3-ling-huo-de-nei-cun-bu-ju-kong-zhi">3.灵活的内存布局控制</span></h3><p>可以通过 <code>make</code> 函数精确的控制 Slice 的初始长度和容量</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 创建一个长度为 3，容量为 5 的整型切片</span><br>s := <span class="hljs-built_in">make</span>([]<span class="hljs-type">int</span>, <span class="hljs-number">3</span>, <span class="hljs-number">5</span>)  <span class="hljs-comment">// s =&gt; [0, 0, 0], len=3, cap=5</span><br></code></pre></td></tr></table></figure>
+
+<p>接下来，我使用一个基准测试来说明这一点：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;testing&quot;</span>  <br>  <br><span class="hljs-keyword">const</span> sliceSize = <span class="hljs-number">10000</span>  <br>  <br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">BenchmarkSliceInitWithoutCap</span><span class="hljs-params">(b *testing.B)</span></span> &#123;  <br>    <span class="hljs-keyword">for</span> n := <span class="hljs-number">0</span>; n &lt; b.N; n++ &#123;  <br>       sl := <span class="hljs-built_in">make</span>([]<span class="hljs-type">int</span>, <span class="hljs-number">0</span>)  <br>       <span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; sliceSize; i++ &#123;  <br>          sl = <span class="hljs-built_in">append</span>(sl, i)  <br>       &#125;  <br>    &#125;  <br>&#125;  <br>  <br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">BenchmarkSliceInitWithCap</span><span class="hljs-params">(b *testing.B)</span></span> &#123;  <br>    <span class="hljs-keyword">for</span> n := <span class="hljs-number">0</span>; n &lt; b.N; n++ &#123;  <br>       sl := <span class="hljs-built_in">make</span>([]<span class="hljs-type">int</span>, <span class="hljs-number">0</span>, sliceSize)  <br>       <span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; sliceSize; i++ &#123;  <br>          sl = <span class="hljs-built_in">append</span>(sl, i)  <br>       &#125;  <br>    &#125;  <br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>下面是执行结果：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash">(base) xuyuyang % go <span class="hljs-built_in">test</span> -benchmem -bench=. slice_benchmark_test.go<br>goos: darwin<br>goarch: arm64<br>cpu: Apple M3<br>BenchmarkSliceInitWithoutCap-8             <br>51662             22170 ns/op          357629 B/op         19 allocs/op<br>BenchmarkSliceInitWithCap-8               <br>210564              5757 ns/op           81920 B/op          1 allocs/op<br>PASS<br>ok      command-line-arguments  3.039s<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><p><strong><code>BenchmarkSliceInitWithoutCap-8</code></strong>:</p>
+<ul>
+<li><p>执行了 51,662 次，每次操作平均耗时 <strong>22,170 ns</strong> (约 0.022 ms)</p>
+</li>
+<li><p>每次操作分配了约 <strong>357.6 KB</strong> 的内存</p>
+</li>
+<li><p>每次操作发生了 <strong>19 次</strong> 内存分配 (allocs)</p>
+</li>
+</ul>
+</li>
+<li><p><strong><code>BenchmarkSliceInitWithCap-8</code></strong>:</p>
+<ul>
+<li><p>执行了 210,564 次，每次操作平均耗时 <strong>5,757 ns</strong> (约 0.006 ms) <strong>-&gt; 快 3.85 倍！</strong></p>
+</li>
+<li><p>每次操作分配了约 <strong>81.9 KB</strong> 的内存 <strong>-&gt; 内存减少 77%！</strong></p>
+</li>
+<li><p>每次操作发生了 <strong>1 次</strong> 内存分配 (allocs) <strong>-&gt; 分配次数减少 94%！</strong></p>
+</li>
+</ul>
+</li>
+</ul>
+<h3><span id="zhu-yi-shi-xiang">注意事项</span></h3><ul>
+<li><strong>意外的修改</strong>：多个切片可能共享同一个底层数组，因此在修改切片元素时需要注意是否会影响其他切片。若不希望对其他切片产生影响，需要使用<code>copy</code> 函数进行显示复制。</li>
+<li><strong>”内存泄露“</strong>：一个引用着很大底层数组的切片可能只使用其中的很小一部分，但切片的引用会导致这个数组无法被GC。因此可以在使用完大数组后，将需要的数据复制到一个独立的切片中进行使用。</li>
+<li><strong>扩容导致的”断链“</strong>：<code>append</code> 操作可能会导致扩容，扩容后会使用一个全新的底层数组。此时，新的切片与之前基于旧数组的切片就不再共享同一底层数组了。对它们的修改将互不影响。</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Golang</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>pydantic-数据验证和解析</title>
+    <url>/2025/08/01/Python/2025-08-01-pydantic-%E6%95%B0%E6%8D%AE%E9%AA%8C%E8%AF%81%E5%92%8C%E8%A7%A3%E6%9E%90/</url>
+    <content><![CDATA[]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>pytest-测试框架</title>
+    <url>/2025/08/03/Python/2025-08-11-pytest-%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6/</url>
+    <content><![CDATA[<blockquote>
+<p>pytest 是 Python 领域使用最广泛、功能最丰富的 <strong>第三方</strong> 单元测试框架（Unit Test Framework）。它秉承“让测试变得更简单”的理念，语法简洁、插件生态庞大，几乎已经成为 Python 事实上的测试标准。</p>
+</blockquote>
+<h2><span id="yi-an-zhuang">一、安装</span></h2><figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash">pip install pytest<br></code></pre></td></tr></table></figure>
+
+<h2><span id="er-zui-xiao-ke-yun-xing-shi-li">二、最小可运行示例</span></h2><p>这里以博主的demo作为例子</p>
+<h3><span id="1-jian-li-mu-lu-jie-gou">1. 建立目录结构</span></h3><figure class="highlight nix"><table><tr><td class="code"><pre><code class="hljs nix">demo<span class="hljs-symbol">/</span><br>├── src<span class="hljs-symbol">/</span>                      <span class="hljs-comment"># 核心领域模型</span><br>│   └── entities.py            <span class="hljs-comment"># Chemical/Hazard等核心类定义</span><br>│<br>└── tests<span class="hljs-symbol">/</span>                     <span class="hljs-comment"># 测试套件</span><br>    └── test_entities.py.      <span class="hljs-comment"># entities.py测试代码</span><br></code></pre></td></tr></table></figure>
+
+<h3><span id="2-bei-ce-dai-ma-src-entities-py">2. 被测代码 <code>src/entities.py</code></span></h3><figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> enum <span class="hljs-keyword">import</span> Enum<br><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> <span class="hljs-type">Optional</span><br><span class="hljs-keyword">from</span> pydantic <span class="hljs-keyword">import</span> BaseModel, validator<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Chemical</span>(<span class="hljs-title class_ inherited__">BaseModel</span>):  <br>    <span class="hljs-string">&quot;&quot;&quot;化学品核心实体&quot;&quot;&quot;</span>  <br>    <span class="hljs-built_in">id</span>: <span class="hljs-built_in">str</span>  <br>    name: <span class="hljs-built_in">str</span><br>    en_name: <span class="hljs-built_in">str</span><br>    cas: <span class="hljs-type">Optional</span>[<span class="hljs-built_in">str</span>] = <span class="hljs-literal">None</span><br>    un: <span class="hljs-type">Optional</span>[<span class="hljs-built_in">str</span>] = <span class="hljs-literal">None</span>  <br>  <br><span class="hljs-meta">    @validator(<span class="hljs-params"><span class="hljs-string">&#x27;cas&#x27;</span></span>)</span><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">validate_cas</span>(<span class="hljs-params">cls, v</span>):<br>        <span class="hljs-keyword">if</span> v <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> re.<span class="hljs-keyword">match</span>(<span class="hljs-string">r&#x27;^\d&#123;2,7&#125;-\d&#123;2&#125;-\d$&#x27;</span>, v):<br>            <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">&quot;Invalid CAS number format&quot;</span>)<br>        <span class="hljs-keyword">return</span> v <br></code></pre></td></tr></table></figure>
+
+<h3><span id="3-ce-shi-dai-ma-tests-test-entities-py">3. 测试代码 <code>tests/test_entities.py</code></span></h3><figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pytest<br><span class="hljs-keyword">from</span> pydantic <span class="hljs-keyword">import</span> ValidationError<br><span class="hljs-keyword">from</span> core.entities <span class="hljs-keyword">import</span> Chemical<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">TestChemical</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">test_valid_chemical</span>(<span class="hljs-params">self</span>):  <br>        chem = Chemical(<br>            <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;CHEM001&quot;</span>,<br>            name=<span class="hljs-string">&quot;水&quot;</span>,<br>            en_name=<span class="hljs-string">&quot;Water&quot;</span>,<br>            cas=<span class="hljs-string">&quot;7732-18-5&quot;</span>,  <span class="hljs-comment"># 有效CAS</span><br>        )<br>        <span class="hljs-keyword">assert</span> chem.cas == <span class="hljs-string">&quot;7732-18-5&quot;</span><br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">test_cas_validation</span>(<span class="hljs-params">self</span>):  <br>        <span class="hljs-keyword">with</span> pytest.raises(ValidationError):<br>            Chemical(<br>                <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;CHEM002&quot;</span>,<br>                name=<span class="hljs-string">&quot;测试&quot;</span>,<br>                en_name=<span class="hljs-string">&quot;test&quot;</span>,<br>                cas=<span class="hljs-string">&quot;abc-de-f&quot;</span>,  <span class="hljs-comment"># 无效格式</span><br>            )<br></code></pre></td></tr></table></figure>
+
+<h3><span id="4-yun-xing-ce-shi">4. 运行测试</span></h3><p>在项目根目录执行：<code>pytest</code>, pytest 会递归查找以 <code>test_*.py</code> 或 <code>*_test.py</code> 命名的文件，执行其中以 <code>test_</code> 开头的函数&#x2F;类&#x2F;方法。</p>
+<h2><span id="san-he-xin-te-xing-su-lan">三、核心特性速览</span></h2><table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>断言语句</strong></td>
+<td>仅使用原生 <code>assert</code></td>
+<td><code>assert chem.cas == &quot;7732-18-5&quot;</code></td>
+</tr>
+<tr>
+<td><strong>自动发现</strong></td>
+<td>默认规则：文件&#x2F;函数&#x2F;类以 <code>test_</code> 开头</td>
+<td>无需手动注册</td>
+</tr>
+<tr>
+<td><strong>夹具（fixture）</strong></td>
+<td>测试前置&#x2F;后置逻辑复用</td>
+<td><code>@pytest.fixture</code></td>
+</tr>
+<tr>
+<td><strong>参数化</strong></td>
+<td>一条测试跑多组输入</td>
+<td><code>@pytest.mark.parametrize</code></td>
+</tr>
+<tr>
+<td><strong>标记（mark）</strong></td>
+<td>给测试打标签，选择性运行</td>
+<td><code>@pytest.mark.slow</code></td>
+</tr>
+<tr>
+<td><strong>插件体系</strong></td>
+<td>1000+ 插件，如 <code>pytest-cov</code></td>
+<td><code>pip install pytest-cov</code></td>
+</tr>
+</tbody></table>
+<h2><span id="si-fixture-ke-fu-yong-de-ce-shi-zi-yuan">四、fixture：可复用的测试资源</span></h2><p>在 pytest 里，<strong>fixture</strong> 就是“测试用的资源工厂”。<br>它负责：</p>
+<ol>
+<li><p><strong>创建</strong>（setup）—— 测试前把环境、数据、连接准备好；</p>
+</li>
+<li><p><strong>提供</strong>（yield &#x2F; return）—— 把资源交给测试函数；</p>
+</li>
+<li><p><strong>清理</strong>（teardown）—— 测试后自动释放、回滚、断开。</p>
+</li>
+</ol>
+<p>写一次，到处用；pytest 会自动按需调度。</p>
+<hr>
+<h3><span id="1-zui-xiao-fixture-mo-ban">1. 最小 fixture 模板</span></h3><p>定义：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pytest<br><br><span class="hljs-meta">@pytest.fixture</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">sample_list</span>():<br>    <span class="hljs-string">&quot;&quot;&quot;返回一个可复用的列表，测试后自动清空。&quot;&quot;&quot;</span><br>    data = [<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>]<br>    <span class="hljs-keyword">yield</span> data           <span class="hljs-comment"># 把资源交给测试用例</span><br>    data.clear()         <span class="hljs-comment"># 测试结束后执行</span><br></code></pre></td></tr></table></figure>
+
+<p>使用：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_len</span>(<span class="hljs-params">sample_list</span>):<br>    <span class="hljs-keyword">assert</span> <span class="hljs-built_in">len</span>(sample_list) == <span class="hljs-number">3</span><br></code></pre></td></tr></table></figure>
+
+<p>运行顺序：</p>
+<p><code>fixture setup</code> → <code>test_len</code> → <code>fixture teardown</code></p>
+<h3><span id="2-zuo-yong-yu-scope-shi-me-shi-hou-chuang-jian-xiao-hui">2. 作用域（scope）—— 什么时候创建、销毁</span></h3><figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;function&quot;</span></span>)   </span><span class="hljs-comment"># 默认值：每个测试函数一次</span><br><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;class&quot;</span></span>)      </span><span class="hljs-comment"># 每个测试类一次</span><br><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;module&quot;</span></span>)     </span><span class="hljs-comment"># 整个 test_*.py 一次</span><br><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;package&quot;</span></span>)    </span><span class="hljs-comment"># 整个包一次</span><br><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;session&quot;</span></span>)    </span><span class="hljs-comment"># 整个 pytest 会话一次</span><br></code></pre></td></tr></table></figure>
+
+<h3><span id="3-nei-zhi-x2f-chang-yong-fixture-su-cha">3. 内置&#x2F;常用 fixture 速查</span></h3><table>
+<thead>
+<tr>
+<th>内置 fixture</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>tmp_path</code></td>
+<td>提供 <code>pathlib.Path</code> 临时目录，函数级</td>
+</tr>
+<tr>
+<td><code>tmp_path_factory</code></td>
+<td>同上，但可跨作用域</td>
+</tr>
+<tr>
+<td><code>monkeypatch</code></td>
+<td>安全地打补丁（环境变量、模块属性等）</td>
+</tr>
+<tr>
+<td><code>capsys</code> &#x2F; <code>capfd</code></td>
+<td>捕获 stdout&#x2F;stderr 或文件描述符</td>
+</tr>
+<tr>
+<td><code>request</code></td>
+<td>提供测试上下文（模块名、配置、参数）</td>
+</tr>
+</tbody></table>
+<h2><span id="wu-can-shu-hua-yi-tiao-ce-shi-duo-zu-shu-ju">五、参数化：一条测试多组数据</span></h2><p>将上面的<code>tests/test_entities.py</code>改造为可以一次测试多组数据</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pytest<br><span class="hljs-keyword">from</span> core.entities <span class="hljs-keyword">import</span> Chemical<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">TestChemicalEntity</span>:  <br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">test_valid_chemical</span>(<span class="hljs-params">self</span>):  <br>        chem = Chemical(  <br>            <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;CHEM001&quot;</span>,  <br>            name=<span class="hljs-string">&quot;硫酸&quot;</span>,  <br>            en_name=<span class="hljs-string">&quot;Sulfuric Acid&quot;</span>,  <br>            cas=<span class="hljs-string">&quot;7664-93-9&quot;</span>,  <br>        )  <br>        <span class="hljs-keyword">assert</span> chem.cas == <span class="hljs-string">&quot;7664-93-9&quot;</span>   <br>  <br><span class="hljs-meta">    @pytest.mark.parametrize(<span class="hljs-params"><span class="hljs-string">&quot;cas_num, is_valid&quot;</span>, [  </span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;7732-18-5&quot;</span>, <span class="hljs-literal">True</span></span>),  <span class="hljs-comment"># 水的CAS号  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;64-17-5&quot;</span>, <span class="hljs-literal">True</span></span>),  <span class="hljs-comment"># 乙醇  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;123-45-6&quot;</span>, <span class="hljs-literal">True</span></span>),  <span class="hljs-comment"># 格式正确（虽然可能不存在）  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;1-23-4&quot;</span>, <span class="hljs-literal">False</span></span>),  <span class="hljs-comment"># 第一部分太短  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;12345678-90-1&quot;</span>, <span class="hljs-literal">False</span></span>),  <span class="hljs-comment"># 第一部分太长  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;123-456-7&quot;</span>, <span class="hljs-literal">False</span></span>),  <span class="hljs-comment"># 第二部分应为2位  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;abc-de-f&quot;</span>, <span class="hljs-literal">False</span></span>),  <span class="hljs-comment"># 包含非数字字符  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-literal">None</span>, <span class="hljs-literal">True</span></span>)  <span class="hljs-comment"># 允许为空  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">    ]</span>)  </span><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">test_cas_validation</span>(<span class="hljs-params">self, cas_num, is_valid</span>):  <br>        <span class="hljs-keyword">if</span> is_valid:  <br>            chem = Chemical(  <br>                <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;TEST&quot;</span>,  <br>                name=<span class="hljs-string">&quot;Test&quot;</span>,  <br>                en_name=<span class="hljs-string">&quot;Test&quot;</span>,  <br>                cas=cas_num,  <br>            )  <br>            <span class="hljs-keyword">assert</span> chem.cas == cas_num  <br>        <span class="hljs-keyword">else</span>:  <br>            <span class="hljs-keyword">with</span> pytest.raises(ValidationError):  <br>                Chemical(  <br>                    <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;TEST&quot;</span>,  <br>                    name=<span class="hljs-string">&quot;Test&quot;</span>,  <br>                    en_name=<span class="hljs-string">&quot;Test&quot;</span>,  <br>                    cas=cas_num,  <br>                )<br></code></pre></td></tr></table></figure>
+
+<p>运行时会生成 8 个独立的测试节点，失败互不影响。</p>
+<h2><span id="liu-biao-ji-fen-lei-ce-shi">六、标记：分类测试</span></h2><h3><span id="1-ding-yi-biao-ji">1. 定义标记</span></h3><figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pytest<br><br><span class="hljs-meta">@pytest.mark.slow</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_chemical</span>():<br>    <span class="hljs-keyword">pass</span><br></code></pre></td></tr></table></figure>
+<h3><span id="2-yun-xing-zhi-ding-biao-ji">2. 运行指定标记</span></h3><figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash">pytest -m <span class="hljs-string">&quot;slow&quot;</span><br>pytest -m <span class="hljs-string">&quot;not slow&quot;</span><br></code></pre></td></tr></table></figure>
+
+<h2><span id="qi-chang-yong-cli-xuan-xiang">七、常用 CLI 选项</span></h2><table>
+<thead>
+<tr>
+<th>选项</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>-v</code> &#x2F; <code>--verbose</code></td>
+<td>详细输出</td>
+</tr>
+<tr>
+<td><code>-q</code> &#x2F; <code>--quiet</code></td>
+<td>极简输出</td>
+</tr>
+<tr>
+<td><code>-k EXPRESSION</code></td>
+<td>按名字过滤测试，支持表达式（<code>&quot;test_add or test_sub&quot;</code>）</td>
+</tr>
+<tr>
+<td><code>-x</code></td>
+<td>首次失败即停止</td>
+</tr>
+<tr>
+<td><code>--tb=short/line/no</code></td>
+<td>控制回溯格式</td>
+</tr>
+<tr>
+<td><code>--lf</code></td>
+<td>仅运行上次失败的测试</td>
+</tr>
+<tr>
+<td><code>--cov=src</code></td>
+<td>生成覆盖率报告（需 <code>pytest-cov</code>）</td>
+</tr>
+</tbody></table>
+<h2><span id="ba-cha-jian-tui-jian">八、插件推荐</span></h2><table>
+<thead>
+<tr>
+<th>插件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>pytest-cov</code></td>
+<td>代码覆盖率</td>
+</tr>
+<tr>
+<td><code>pytest-xdist</code></td>
+<td>并发运行（<code>-n auto</code>）</td>
+</tr>
+<tr>
+<td><code>pytest-mock</code></td>
+<td>集成 <code>unittest.mock</code> 并提供 <code>mocker</code> fixture</td>
+</tr>
+<tr>
+<td><code>pytest-django</code></td>
+<td>Django 集成</td>
+</tr>
+<tr>
+<td><code>pytest-asyncio</code></td>
+<td>原生支持 <code>async/await</code></td>
+</tr>
+<tr>
+<td><code>pytest-html</code></td>
+<td>生成漂亮 HTML 报告</td>
+</tr>
+<tr>
+<td><code>pytest-timeout</code></td>
+<td>设置超时</td>
+</tr>
+</tbody></table>
+<h2><span id="jiu-zui-jia-shi-jian-xiao-jie">九、最佳实践小结</span></h2><ol>
+<li><p>项目根目录放 <code>tests/</code> 文件夹，保持与 <code>src/</code> 平级。</p>
+</li>
+<li><p>每个测试文件专注一个小模块，命名 <code>test_&lt;module&gt;.py</code>。</p>
+</li>
+<li><p>优先使用原生 <code>assert</code>，足够直观。</p>
+</li>
+<li><p>把 <strong>环境准备&#x2F;清理</strong> 写成 fixture，提高复用性。</p>
+</li>
+<li><p>用 <code>@pytest.mark.parametrize</code> 减少重复用例。</p>
+</li>
+<li><p>用标记分类“慢测试”“集成测试”等，CI&#x2F;CD 中选择性运行。</p>
+</li>
+<li><p>给公共 fixture 加 <code>scope=&quot;session&quot;</code> 减少耗时。</p>
+</li>
+<li><p>合理配置 <code>pytest.ini</code>&#x2F;<code>pyproject.toml</code>，集中管理选项和标记。</p>
+</li>
+</ol>
+<h2><span id="can-kao-lian-jie">参考链接</span></h2><ul>
+<li><p>官方文档：<a href="https://docs.pytest.org/">https://docs.pytest.org/</a></p>
+</li>
+<li><p>插件列表：<a href="https://docs.pytest.org/en/stable/reference/plugin_list.html">https://docs.pytest.org/en/stable/reference/plugin_list.html</a></p>
+</li>
+<li><p>Awesome pytest：<a href="https://github.com/augustogoulart/awesome-pytest">https://github.com/augustogoulart/awesome-pytest</a></p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+  </entry>
+  <entry>
     <title>博客搭建新思路：借助大模型提示词开启高效之旅</title>
     <url>/2025/07/27/%E6%9D%82%E8%B0%88/2025-07-27-%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E6%96%B0%E6%80%9D%E8%B7%AF%EF%BC%9A%E5%80%9F%E5%8A%A9%E5%A4%A7%E6%A8%A1%E5%9E%8B%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%BC%80%E5%90%AF%E9%AB%98%E6%95%88%E5%88%9B%E4%BD%9C%E4%B9%8B%E6%97%85/</url>
     <content><![CDATA[<blockquote>
@@ -84,6 +509,18 @@
 ]]></content>
       <categories>
         <category>杂谈</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>CSS选择器与XPath</title>
+    <url>/2025/07/30/%E7%88%AC%E8%99%AB/2025-07-30-CSS%E9%80%89%E6%8B%A9%E5%99%A8%E4%B8%8EXPath/</url>
+    <content><![CDATA[<blockquote>
+<p>博主最近在构建一个用于危险化学品检测的多模态知识图谱，由于没有开源的数据集，遂只能自行进行数据的爬取。而想要进行网络资源的抓取，对于文档元素的定位是绕不开的话题。正则表达式由于写法过于冗杂，不在博主的考虑之中，接下来主要为大家介绍CSS选择器与XPath两种方法。</p>
+</blockquote>
+<h3><span id="css-xuan-ze-qi">CSS选择器</span></h3><p>CSS是层叠样式表的简称，很多的网页都使用了这个技术，因此，要用于HTML文档的样式应用CSS选择器，也被广泛用于Web抓取和前端测试中。</p>
+]]></content>
+      <categories>
+        <category>爬虫</category>
       </categories>
   </entry>
   <entry>
@@ -380,18 +817,6 @@
 </li>
 </ol>
 <p>爬虫开发就像一场永无止境的技术探险，每一次突破瓶颈都意味着能力的提升。希望我的经验分享能为同行者提供有价值的参考，也欢迎大家一起探讨更优的解决方案。</p>
-]]></content>
-      <categories>
-        <category>爬虫</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>CSS选择器与XPath</title>
-    <url>/2025/07/30/%E7%88%AC%E8%99%AB/2025-07-30-CSS%E9%80%89%E6%8B%A9%E5%99%A8%E4%B8%8EXPath/</url>
-    <content><![CDATA[<blockquote>
-<p>博主最近在构建一个用于危险化学品检测的多模态知识图谱，由于没有开源的数据集，遂只能自行进行数据的爬取。而想要进行网络资源的抓取，对于文档元素的定位是绕不开的话题。正则表达式由于写法过于冗杂，不在博主的考虑之中，接下来主要为大家介绍CSS选择器与XPath两种方法。</p>
-</blockquote>
-<h3><span id="css-xuan-ze-qi">CSS选择器</span></h3><p>CSS是层叠样式表的简称，很多的网页都使用了这个技术，因此，要用于HTML文档的样式应用CSS选择器，也被广泛用于Web抓取和前端测试中。</p>
 ]]></content>
       <categories>
         <category>爬虫</category>
@@ -807,305 +1232,16 @@
 
 <h3><span id="4-yan-shi-jiao-ben">4. 演示脚本</span></h3><h4><span id="demo-setup-sample-graph-py"><code>demo/setup_sample_graph.py</code></span></h4><figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> asyncio  <br><span class="hljs-keyword">from</span> core.entities <span class="hljs-keyword">import</span> Chemical, PhysicalState, Hazard  <br><span class="hljs-keyword">from</span> core.relations <span class="hljs-keyword">import</span> RelationType  <br><span class="hljs-keyword">from</span> services.graph_service <span class="hljs-keyword">import</span> ChemicalGraphService  <br>  <br>  <br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">setup_sample_data</span>(<span class="hljs-params">service</span>):  <br>    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;开始初始化化学品和危害数据...&quot;</span>)  <br>  <br>    <span class="hljs-comment"># 1. 创建化学品节点  </span><br>    ethanol = Chemical(  <br>        <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;CAS64-17-5&quot;</span>,  <br>        name=<span class="hljs-string">&quot;乙醇&quot;</span>,  <br>        en_name=<span class="hljs-string">&quot;Ethanol&quot;</span>,  <br>        cas=<span class="hljs-string">&quot;64-17-5&quot;</span>,  <br>        un=<span class="hljs-string">&quot;UN1170&quot;</span>,  <br>        molecular_formula=<span class="hljs-string">&quot;C2H5OH&quot;</span>,  <br>        physical_state=PhysicalState.LIQUID  <br>    )  <br>    oxygen = Chemical(  <br>        <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;CAS7782-44-7&quot;</span>,  <br>        name=<span class="hljs-string">&quot;氧气&quot;</span>,  <br>        en_name=<span class="hljs-string">&quot;Oxygen&quot;</span>,  <br>        cas=<span class="hljs-string">&quot;7782-44-7&quot;</span>,  <br>        un=<span class="hljs-string">&quot;UN1072&quot;</span>,  <br>        molecular_formula=<span class="hljs-string">&quot;O2&quot;</span>,  <br>        physical_state=PhysicalState.GAS  <br>    )  <br>  <br>    <span class="hljs-comment"># 2. 创建危害节点  </span><br>    flammability = Hazard(  <br>        <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;GHS02&quot;</span>,  <br>        name=<span class="hljs-string">&quot;易燃液体&quot;</span>,  <br>        code=<span class="hljs-string">&quot;GHS02&quot;</span>,  <br>        severity=<span class="hljs-number">3</span>,  <br>        category=<span class="hljs-string">&quot;physical&quot;</span>  <br>    )  <br>    oxidizer = Hazard(  <br>        <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;GHS03&quot;</span>,  <br>        name=<span class="hljs-string">&quot;氧化性气体&quot;</span>,  <br>        code=<span class="hljs-string">&quot;GHS03&quot;</span>,  <br>        severity=<span class="hljs-number">2</span>,  <br>        category=<span class="hljs-string">&quot;physical&quot;</span>  <br>    )  <br>  <br>    <span class="hljs-comment"># 保存节点  </span><br>    <span class="hljs-keyword">await</span> service.create_chemical(ethanol)  <br>    <span class="hljs-keyword">await</span> service.create_chemical(oxygen)  <br>    <span class="hljs-keyword">await</span> service.add_hazard(flammability)  <br>    <span class="hljs-keyword">await</span> service.add_hazard(oxidizer)  <br>    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;基础节点创建完成&quot;</span>)  <br>  <br>    <span class="hljs-comment"># 3. 建立关系  </span><br>    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;\n开始建立关系...&quot;</span>)  <br>    <span class="hljs-comment"># 修改证据数据格式（确保所有值为基本类型）  </span><br>    evidence_data = [&#123;  <br>        <span class="hljs-string">&quot;head&quot;</span>: ethanol.<span class="hljs-built_in">id</span>,  <br>        <span class="hljs-string">&quot;relation&quot;</span>: RelationType.HAS_HAZARD.value,  <br>        <span class="hljs-string">&quot;tail&quot;</span>: flammability.<span class="hljs-built_in">id</span>,  <br>        <span class="hljs-string">&quot;modality&quot;</span>: <span class="hljs-string">&quot;text&quot;</span>,  <br>        <span class="hljs-string">&quot;source&quot;</span>: <span class="hljs-string">&quot;GHS标准&quot;</span>,  <br>        <span class="hljs-string">&quot;confidence&quot;</span>: <span class="hljs-number">0.95</span>  <span class="hljs-comment"># 添加数值类型示例  </span><br>    &#125;]  <br>  <br>    <span class="hljs-comment"># 化学品-危害关系  </span><br>    <span class="hljs-keyword">await</span> service.create_relationship(  <br>        source_id=ethanol.<span class="hljs-built_in">id</span>,  <br>        target_id=flammability.<span class="hljs-built_in">id</span>,  <br>        relation_type=RelationType.HAS_HAZARD,  <br>        evidence=evidence_data  <br>    )  <br>  <br>    <span class="hljs-comment"># 不相容关系示例  </span><br>    <span class="hljs-keyword">await</span> service.create_relationship(  <br>        source_id=ethanol.<span class="hljs-built_in">id</span>,  <br>        target_id=oxygen.<span class="hljs-built_in">id</span>,  <br>        relation_type=RelationType.INCOMPATIBLE_WITH,  <br>        evidence=[&#123;  <br>            <span class="hljs-string">&quot;source&quot;</span>: <span class="hljs-string">&quot;实验室安全手册&quot;</span>,  <br>            <span class="hljs-string">&quot;reason&quot;</span>: <span class="hljs-string">&quot;易燃物与氧化剂接触可能引发火灾&quot;</span>,  <br>            <span class="hljs-string">&quot;reference&quot;</span>: <span class="hljs-string">&quot;ISO-12345&quot;</span>  <br>        &#125;]  <br>    )  <br>  <br>  <br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">verify_relationships</span>(<span class="hljs-params">service</span>):  <br>    <span class="hljs-string">&quot;&quot;&quot;验证关系（显示不重复的结果）&quot;&quot;&quot;</span>  <br>    hazards = <span class="hljs-keyword">await</span> service.get_chemical_hazards(<span class="hljs-string">&quot;CAS64-17-5&quot;</span>)  <br>    incompatibles = <span class="hljs-keyword">await</span> service.find_incompatible_chemicals(<span class="hljs-string">&quot;CAS64-17-5&quot;</span>)  <br>  <br>    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;乙醇的危害属性: <span class="hljs-subst">&#123;<span class="hljs-built_in">list</span>(<span class="hljs-built_in">set</span>([h.name <span class="hljs-keyword">for</span> h <span class="hljs-keyword">in</span> hazards]))&#125;</span>&quot;</span>)  <br>    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;乙醇不相容的化学品: <span class="hljs-subst">&#123;<span class="hljs-built_in">list</span>(<span class="hljs-built_in">set</span>([c.name <span class="hljs-keyword">for</span> c <span class="hljs-keyword">in</span> incompatibles]))&#125;</span>&quot;</span>)  <br>  <br>  <br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">main</span>():  <br>    service = ChemicalGraphService()  <br>    <span class="hljs-keyword">try</span>:  <br>        <span class="hljs-keyword">await</span> setup_sample_data(service)  <br>        <span class="hljs-keyword">await</span> verify_relationships(service)  <br>    <span class="hljs-keyword">except</span> Exception <span class="hljs-keyword">as</span> e:  <br>        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;程序出错: <span class="hljs-subst">&#123;<span class="hljs-built_in">str</span>(e)&#125;</span>&quot;</span>)  <br>    <span class="hljs-keyword">finally</span>:  <br>        <span class="hljs-keyword">await</span> service.close()  <br>  <br>  <br><span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&quot;__main__&quot;</span>:  <br>    asyncio.run(main())<br></code></pre></td></tr></table></figure>
 
+<h3><span id="5-zong-jie">5.总结</span></h3><p>至此，demo已经搭建完毕，我们成功在neo4j数据库上构建了一个简易的知识图谱。</p>
+<p>接下来的工作：</p>
+<ol>
+<li>将爬取到的批量的数据自动化生成节点和关系并插入图片</li>
+<li>研究如何将多模态信息加入图谱</li>
+</ol>
 ]]></content>
       <categories>
         <category>知识图谱</category>
         <category>项目</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>pydantic-数据验证和解析</title>
-    <url>/2025/08/01/Python/2025-08-01-pydantic-%E6%95%B0%E6%8D%AE%E9%AA%8C%E8%AF%81%E5%92%8C%E8%A7%A3%E6%9E%90/</url>
-    <content><![CDATA[]]></content>
-      <categories>
-        <category>Python</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Go语法-channel机制探寻</title>
-    <url>/2025/08/09/Golang/2025-08-09-Go%E8%AF%AD%E6%B3%95-channel%E6%9C%BA%E5%88%B6%E6%8E%A2%E5%AF%BB/</url>
-    <content><![CDATA[<blockquote>
-<p>对于进程间通信与资源交换这一问题，Go 使用了 channel 这一类型安全的消息队列来处理。chan 控制 goroutines 交互的能力从而创建了 Go 同步机制。同时，可以通过指定容量大小来创建无缓冲通道与缓冲通道。<br>下面，将对这两种通道进行介绍，并给出常见的使用模式</p>
-</blockquote>
-<h3><span id="unbuffered-channels-wu-huan-chong-tong-dao">Unbuffered Channels （无缓冲通道）</span></h3><p>无缓冲 chan 没有容量，因此在进行任何交换前都需要两个 goroutine <strong>同时</strong>准备好。若非如此，可能会出现以下两种情况：</p>
-<ul>
-<li><p>当 goroutine 试图将一个资源发送到一个无缓冲的通道，同时没有 goroutine 等待接收该资源时：该通道将锁住发送 goroutine 并使其等待，直到有一个 goroutine 对通道进行接收操作。</p>
-</li>
-<li><p>当 goroutine 尝试从无缓冲通道接收，但此时没有一个 goroutine 等待发送资源时：该通道将锁住接收 goroutine 并使其等待，知道有一个 goroutine 准备将一个资源发送到通道。</p>
-</li>
-</ul>
-<p>根据上面的两种情况可以看出，发送和接收的 goroutine 中的任意一方准备好时，都必须等待对方也准备好才能进行资源的交换。因此，无缓冲通道的本质是<strong>保证双方的同步</strong>。</p>
-<p>还有一点值得注意：对于无缓冲通道，发送方将持续阻塞直到接收方从通道中接收到了传入的值。这保证了接收一定先于发送发生，由此可以 100 % 保证传入的值被收到，但代价是无法预测阻塞（延迟）的时间。</p>
-<h3><span id="buffered-channels-huan-chong-tong-dao">Buffered Channels（缓冲通道）</span></h3><p>与无缓冲通道相比，缓冲通道具有容量，因此情况也会有所不同：</p>
-<ul>
-<li><p>当 goroutine 试图将资源发送到缓冲通道，且该通道已满时：该通道将锁住 goroutine 并使其等待，直到缓冲区重新有可用空间，（有 goroutine 消费了通道中已有的资源）此时发送可立即进行，之前被锁住的 goroutine 可以继续向通道发送资源，直到通道空间再次装满。</p>
-</li>
-<li><p>当 goroutine 尝试从缓冲通道接收数据，而通道为空时：该通道将锁住 goroutine 并使其等待，直到有资源被发送进这个通道。</p>
-</li>
-</ul>
-<p>可以看出，在 chan 创建过程中定义的缓冲区大小可能会极大的影响程序性能。此时通常需要使用 Benchmark 对不同大小的缓冲区做一个基准测试，来选取大小合适的缓冲区（并不是说 buffer 越大，程序的性能一定越好，这视发送与接收方的情况而定）。</p>
-<p>此外，与无缓冲通道相比，缓冲通道的发送先于接收发生。这样做的好处是延迟更小，而代价是不能保证数据到达，可以这样说：越大的 buffer，越小的保障到达。</p>
-<h3><span id="shi-yong-tong-dao-de-chang-jian-mo-shi">使用通道的常见模式</span></h3><h4><span id="1-timing-out">1. Timing out</span></h4><p>使用 channels 做一个超时控制，官方案例如下：</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang">timeout := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-type">bool</span>, <span class="hljs-number">1</span>)<br><span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>	time.Sleep(<span class="hljs-number">1</span> * time.Second)<br>	timeout &lt;- <span class="hljs-literal">true</span><br>&#125;<br></code></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们希望从管道 ch 中接收数据，但我们也希望最多等待1秒钟。为此，我们应该在将数据发送到 ch 前先创建一个信号的管道，并且运行一个 goroutine 进行1秒钟的休眠。</p>
-</blockquote>
-<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><span class="hljs-keyword">select</span> &#123;<br><span class="hljs-keyword">case</span> &lt;-ch:<br>	<span class="hljs-comment">// a read from ch has occurred</span><br><span class="hljs-keyword">case</span> &lt;-timeout:<br>	<span class="hljs-comment">// the read from ch has time out</span><br>&#125;<br></code></pre></td></tr></table></figure>
-
-<blockquote>
-<p>接下来我们可以使用 select 语句来接收来自 ch 或者 timeout 的数据。如果在1秒后没有数据到达 ch，则 case timeout 将被选择并且认为从 ch 读取数据的操作失败了。<br>可以看到，timeout 是一个缓冲区大小为1的管道，它允许超时的 goroutine 向这个管道发送信息并终止。（这个 goroutine）</p>
-</blockquote>
-<p>参考资料：<a href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
-<h4><span id="2-moving-on">2. Moving on</span></h4><p>这个案例的背景是同时向一个数据库的多个分表进行并发查询，而程序只需要其中任一查询结果，因此应该接收最先到达的结果。同时，在接收到查询结果后应该取消其他进行中的查询。</p>
-<p>可以看到，函数 Query 接收一个数据库连接的切片和要查询的字符串。然后它并行的对每一个数据库进行查询并返回接收到的最先响应的结果。</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">Query</span><span class="hljs-params">(conns []Conn, query <span class="hljs-type">string</span>)</span></span> Result &#123;<br>	ch := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> Result)<br>	<span class="hljs-keyword">for</span> _, conn := <span class="hljs-keyword">range</span> conns &#123;<br>		<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(c Conn)</span></span>&#123;<br>			<span class="hljs-keyword">select</span> &#123;<br>			<span class="hljs-keyword">case</span> ch &lt;- c.DoQuery(query):<br>			defult:<br>			&#125;<br>		&#125;(conn)<br>	&#125;<br>	<span class="hljs-keyword">return</span> &lt;-ch<br>&#125;<br></code></pre></td></tr></table></figure>
-
-<blockquote>
-<p>当第一个查询结果被发送进 ch 后，其他的查询将会通过 select 语句的 default 退出。</p>
-</blockquote>
-<p>参考资料：<a href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
-<h4><span id="3-pipeline">3. Pipeline</span></h4><p>流水线模式最经典的例子应该就是素数筛了，代码如下：</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><br></code></pre></td></tr></table></figure>
-
-
-<h4><span id="4-fan-out-fan-in">4. Fan-out, Fan-in</span></h4><h4><span id="5-cancellation">5. Cancellation</span></h4><h4><span id="6-contex">6. Contex</span></h4><h3><span id="she-ji-yuan-ze">设计原则</span></h3><ul>
-<li><p>如果任意一个向通道的发送可以导致发送 goroutine 被阻塞，你需要考虑：</p>
-<ul>
-<li>不能使用缓冲数大于1的通道（如果需要，你必须能说明这样做的理由）</li>
-<li>必须知道当发送 goroutine 被阻塞时会发生什么（是否需要处理 &#x2F; 怎么处理 &#x2F; 是否符合预期）</li>
-</ul>
-</li>
-<li><p>如果任意一个向通道的发送不会导致发送 goroutine 被阻塞，你需要考虑：</p>
-<ul>
-<li>你为每一个发送设有额外的缓冲区（比如 Fan Out 模式）</li>
-<li>你能对处于最大容量的缓冲区进行相应的处理（是将数据丢弃还是继续等待）</li>
-</ul>
-</li>
-<li><p>对于缓冲来说，少即是多（Less is more）：</p>
-<ul>
-<li>不要将缓冲的大小与性能挂钩</li>
-<li>缓冲可以减少 goroutine 唤醒的成本</li>
-</ul>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>Golang</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>pytest-测试框架</title>
-    <url>/2025/08/03/Python/2025-08-11-pytest-%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6/</url>
-    <content><![CDATA[<blockquote>
-<p>pytest 是 Python 领域使用最广泛、功能最丰富的 <strong>第三方</strong> 单元测试框架（Unit Test Framework）。它秉承“让测试变得更简单”的理念，语法简洁、插件生态庞大，几乎已经成为 Python 事实上的测试标准。</p>
-</blockquote>
-<h2><span id="yi-an-zhuang">一、安装</span></h2><figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash">pip install pytest<br></code></pre></td></tr></table></figure>
-
-<h2><span id="er-zui-xiao-ke-yun-xing-shi-li">二、最小可运行示例</span></h2><p>这里以博主的demo作为例子</p>
-<h3><span id="1-jian-li-mu-lu-jie-gou">1. 建立目录结构</span></h3><figure class="highlight nix"><table><tr><td class="code"><pre><code class="hljs nix">demo<span class="hljs-symbol">/</span><br>├── src<span class="hljs-symbol">/</span>                      <span class="hljs-comment"># 核心领域模型</span><br>│   └── entities.py            <span class="hljs-comment"># Chemical/Hazard等核心类定义</span><br>│<br>└── tests<span class="hljs-symbol">/</span>                     <span class="hljs-comment"># 测试套件</span><br>    └── test_entities.py.      <span class="hljs-comment"># entities.py测试代码</span><br></code></pre></td></tr></table></figure>
-
-<h3><span id="2-bei-ce-dai-ma-src-entities-py">2. 被测代码 <code>src/entities.py</code></span></h3><figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> enum <span class="hljs-keyword">import</span> Enum<br><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> <span class="hljs-type">Optional</span><br><span class="hljs-keyword">from</span> pydantic <span class="hljs-keyword">import</span> BaseModel, validator<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Chemical</span>(<span class="hljs-title class_ inherited__">BaseModel</span>):  <br>    <span class="hljs-string">&quot;&quot;&quot;化学品核心实体&quot;&quot;&quot;</span>  <br>    <span class="hljs-built_in">id</span>: <span class="hljs-built_in">str</span>  <br>    name: <span class="hljs-built_in">str</span><br>    en_name: <span class="hljs-built_in">str</span><br>    cas: <span class="hljs-type">Optional</span>[<span class="hljs-built_in">str</span>] = <span class="hljs-literal">None</span><br>    un: <span class="hljs-type">Optional</span>[<span class="hljs-built_in">str</span>] = <span class="hljs-literal">None</span>  <br>  <br><span class="hljs-meta">    @validator(<span class="hljs-params"><span class="hljs-string">&#x27;cas&#x27;</span></span>)</span><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">validate_cas</span>(<span class="hljs-params">cls, v</span>):<br>        <span class="hljs-keyword">if</span> v <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> re.<span class="hljs-keyword">match</span>(<span class="hljs-string">r&#x27;^\d&#123;2,7&#125;-\d&#123;2&#125;-\d$&#x27;</span>, v):<br>            <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">&quot;Invalid CAS number format&quot;</span>)<br>        <span class="hljs-keyword">return</span> v <br></code></pre></td></tr></table></figure>
-
-<h3><span id="3-ce-shi-dai-ma-tests-test-entities-py">3. 测试代码 <code>tests/test_entities.py</code></span></h3><figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pytest<br><span class="hljs-keyword">from</span> pydantic <span class="hljs-keyword">import</span> ValidationError<br><span class="hljs-keyword">from</span> core.entities <span class="hljs-keyword">import</span> Chemical<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">TestChemical</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">test_valid_chemical</span>(<span class="hljs-params">self</span>):  <br>        chem = Chemical(<br>            <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;CHEM001&quot;</span>,<br>            name=<span class="hljs-string">&quot;水&quot;</span>,<br>            en_name=<span class="hljs-string">&quot;Water&quot;</span>,<br>            cas=<span class="hljs-string">&quot;7732-18-5&quot;</span>,  <span class="hljs-comment"># 有效CAS</span><br>        )<br>        <span class="hljs-keyword">assert</span> chem.cas == <span class="hljs-string">&quot;7732-18-5&quot;</span><br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">test_cas_validation</span>(<span class="hljs-params">self</span>):  <br>        <span class="hljs-keyword">with</span> pytest.raises(ValidationError):<br>            Chemical(<br>                <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;CHEM002&quot;</span>,<br>                name=<span class="hljs-string">&quot;测试&quot;</span>,<br>                en_name=<span class="hljs-string">&quot;test&quot;</span>,<br>                cas=<span class="hljs-string">&quot;abc-de-f&quot;</span>,  <span class="hljs-comment"># 无效格式</span><br>            )<br></code></pre></td></tr></table></figure>
-
-<h3><span id="4-yun-xing-ce-shi">4. 运行测试</span></h3><p>在项目根目录执行：<code>pytest</code>, pytest 会递归查找以 <code>test_*.py</code> 或 <code>*_test.py</code> 命名的文件，执行其中以 <code>test_</code> 开头的函数&#x2F;类&#x2F;方法。</p>
-<h2><span id="san-he-xin-te-xing-su-lan">三、核心特性速览</span></h2><table>
-<thead>
-<tr>
-<th>功能</th>
-<th>说明</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>断言语句</strong></td>
-<td>仅使用原生 <code>assert</code></td>
-<td><code>assert chem.cas == &quot;7732-18-5&quot;</code></td>
-</tr>
-<tr>
-<td><strong>自动发现</strong></td>
-<td>默认规则：文件&#x2F;函数&#x2F;类以 <code>test_</code> 开头</td>
-<td>无需手动注册</td>
-</tr>
-<tr>
-<td><strong>夹具（fixture）</strong></td>
-<td>测试前置&#x2F;后置逻辑复用</td>
-<td><code>@pytest.fixture</code></td>
-</tr>
-<tr>
-<td><strong>参数化</strong></td>
-<td>一条测试跑多组输入</td>
-<td><code>@pytest.mark.parametrize</code></td>
-</tr>
-<tr>
-<td><strong>标记（mark）</strong></td>
-<td>给测试打标签，选择性运行</td>
-<td><code>@pytest.mark.slow</code></td>
-</tr>
-<tr>
-<td><strong>插件体系</strong></td>
-<td>1000+ 插件，如 <code>pytest-cov</code></td>
-<td><code>pip install pytest-cov</code></td>
-</tr>
-</tbody></table>
-<h2><span id="si-fixture-ke-fu-yong-de-ce-shi-zi-yuan">四、fixture：可复用的测试资源</span></h2><p>在 pytest 里，<strong>fixture</strong> 就是“测试用的资源工厂”。<br>它负责：</p>
-<ol>
-<li><p><strong>创建</strong>（setup）—— 测试前把环境、数据、连接准备好；</p>
-</li>
-<li><p><strong>提供</strong>（yield &#x2F; return）—— 把资源交给测试函数；</p>
-</li>
-<li><p><strong>清理</strong>（teardown）—— 测试后自动释放、回滚、断开。</p>
-</li>
-</ol>
-<p>写一次，到处用；pytest 会自动按需调度。</p>
-<hr>
-<h3><span id="1-zui-xiao-fixture-mo-ban">1. 最小 fixture 模板</span></h3><p>定义：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pytest<br><br><span class="hljs-meta">@pytest.fixture</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">sample_list</span>():<br>    <span class="hljs-string">&quot;&quot;&quot;返回一个可复用的列表，测试后自动清空。&quot;&quot;&quot;</span><br>    data = [<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>]<br>    <span class="hljs-keyword">yield</span> data           <span class="hljs-comment"># 把资源交给测试用例</span><br>    data.clear()         <span class="hljs-comment"># 测试结束后执行</span><br></code></pre></td></tr></table></figure>
-
-<p>使用：</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_len</span>(<span class="hljs-params">sample_list</span>):<br>    <span class="hljs-keyword">assert</span> <span class="hljs-built_in">len</span>(sample_list) == <span class="hljs-number">3</span><br></code></pre></td></tr></table></figure>
-
-<p>运行顺序：</p>
-<p><code>fixture setup</code> → <code>test_len</code> → <code>fixture teardown</code></p>
-<h3><span id="2-zuo-yong-yu-scope-shi-me-shi-hou-chuang-jian-xiao-hui">2. 作用域（scope）—— 什么时候创建、销毁</span></h3><figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;function&quot;</span></span>)   </span><span class="hljs-comment"># 默认值：每个测试函数一次</span><br><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;class&quot;</span></span>)      </span><span class="hljs-comment"># 每个测试类一次</span><br><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;module&quot;</span></span>)     </span><span class="hljs-comment"># 整个 test_*.py 一次</span><br><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;package&quot;</span></span>)    </span><span class="hljs-comment"># 整个包一次</span><br><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;session&quot;</span></span>)    </span><span class="hljs-comment"># 整个 pytest 会话一次</span><br></code></pre></td></tr></table></figure>
-
-<h3><span id="3-nei-zhi-x2f-chang-yong-fixture-su-cha">3. 内置&#x2F;常用 fixture 速查</span></h3><table>
-<thead>
-<tr>
-<th>内置 fixture</th>
-<th>作用</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>tmp_path</code></td>
-<td>提供 <code>pathlib.Path</code> 临时目录，函数级</td>
-</tr>
-<tr>
-<td><code>tmp_path_factory</code></td>
-<td>同上，但可跨作用域</td>
-</tr>
-<tr>
-<td><code>monkeypatch</code></td>
-<td>安全地打补丁（环境变量、模块属性等）</td>
-</tr>
-<tr>
-<td><code>capsys</code> &#x2F; <code>capfd</code></td>
-<td>捕获 stdout&#x2F;stderr 或文件描述符</td>
-</tr>
-<tr>
-<td><code>request</code></td>
-<td>提供测试上下文（模块名、配置、参数）</td>
-</tr>
-</tbody></table>
-<h2><span id="wu-can-shu-hua-yi-tiao-ce-shi-duo-zu-shu-ju">五、参数化：一条测试多组数据</span></h2><p>将上面的<code>tests/test_entities.py</code>改造为可以一次测试多组数据</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pytest<br><span class="hljs-keyword">from</span> core.entities <span class="hljs-keyword">import</span> Chemical<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">TestChemicalEntity</span>:  <br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">test_valid_chemical</span>(<span class="hljs-params">self</span>):  <br>        chem = Chemical(  <br>            <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;CHEM001&quot;</span>,  <br>            name=<span class="hljs-string">&quot;硫酸&quot;</span>,  <br>            en_name=<span class="hljs-string">&quot;Sulfuric Acid&quot;</span>,  <br>            cas=<span class="hljs-string">&quot;7664-93-9&quot;</span>,  <br>        )  <br>        <span class="hljs-keyword">assert</span> chem.cas == <span class="hljs-string">&quot;7664-93-9&quot;</span>   <br>  <br><span class="hljs-meta">    @pytest.mark.parametrize(<span class="hljs-params"><span class="hljs-string">&quot;cas_num, is_valid&quot;</span>, [  </span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;7732-18-5&quot;</span>, <span class="hljs-literal">True</span></span>),  <span class="hljs-comment"># 水的CAS号  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;64-17-5&quot;</span>, <span class="hljs-literal">True</span></span>),  <span class="hljs-comment"># 乙醇  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;123-45-6&quot;</span>, <span class="hljs-literal">True</span></span>),  <span class="hljs-comment"># 格式正确（虽然可能不存在）  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;1-23-4&quot;</span>, <span class="hljs-literal">False</span></span>),  <span class="hljs-comment"># 第一部分太短  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;12345678-90-1&quot;</span>, <span class="hljs-literal">False</span></span>),  <span class="hljs-comment"># 第一部分太长  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;123-456-7&quot;</span>, <span class="hljs-literal">False</span></span>),  <span class="hljs-comment"># 第二部分应为2位  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-string">&quot;abc-de-f&quot;</span>, <span class="hljs-literal">False</span></span>),  <span class="hljs-comment"># 包含非数字字符  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">        (<span class="hljs-params"><span class="hljs-literal">None</span>, <span class="hljs-literal">True</span></span>)  <span class="hljs-comment"># 允许为空  </span></span></span><br><span class="hljs-params"><span class="hljs-meta">    ]</span>)  </span><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">test_cas_validation</span>(<span class="hljs-params">self, cas_num, is_valid</span>):  <br>        <span class="hljs-keyword">if</span> is_valid:  <br>            chem = Chemical(  <br>                <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;TEST&quot;</span>,  <br>                name=<span class="hljs-string">&quot;Test&quot;</span>,  <br>                en_name=<span class="hljs-string">&quot;Test&quot;</span>,  <br>                cas=cas_num,  <br>            )  <br>            <span class="hljs-keyword">assert</span> chem.cas == cas_num  <br>        <span class="hljs-keyword">else</span>:  <br>            <span class="hljs-keyword">with</span> pytest.raises(ValidationError):  <br>                Chemical(  <br>                    <span class="hljs-built_in">id</span>=<span class="hljs-string">&quot;TEST&quot;</span>,  <br>                    name=<span class="hljs-string">&quot;Test&quot;</span>,  <br>                    en_name=<span class="hljs-string">&quot;Test&quot;</span>,  <br>                    cas=cas_num,  <br>                )<br></code></pre></td></tr></table></figure>
-
-<p>运行时会生成 8 个独立的测试节点，失败互不影响。</p>
-<h2><span id="liu-biao-ji-fen-lei-ce-shi">六、标记：分类测试</span></h2><h3><span id="1-ding-yi-biao-ji">1. 定义标记</span></h3><figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pytest<br><br><span class="hljs-meta">@pytest.mark.slow</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_chemical</span>():<br>    <span class="hljs-keyword">pass</span><br></code></pre></td></tr></table></figure>
-<h3><span id="2-yun-xing-zhi-ding-biao-ji">2. 运行指定标记</span></h3><figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash">pytest -m <span class="hljs-string">&quot;slow&quot;</span><br>pytest -m <span class="hljs-string">&quot;not slow&quot;</span><br></code></pre></td></tr></table></figure>
-
-<h2><span id="qi-chang-yong-cli-xuan-xiang">七、常用 CLI 选项</span></h2><table>
-<thead>
-<tr>
-<th>选项</th>
-<th>作用</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>-v</code> &#x2F; <code>--verbose</code></td>
-<td>详细输出</td>
-</tr>
-<tr>
-<td><code>-q</code> &#x2F; <code>--quiet</code></td>
-<td>极简输出</td>
-</tr>
-<tr>
-<td><code>-k EXPRESSION</code></td>
-<td>按名字过滤测试，支持表达式（<code>&quot;test_add or test_sub&quot;</code>）</td>
-</tr>
-<tr>
-<td><code>-x</code></td>
-<td>首次失败即停止</td>
-</tr>
-<tr>
-<td><code>--tb=short/line/no</code></td>
-<td>控制回溯格式</td>
-</tr>
-<tr>
-<td><code>--lf</code></td>
-<td>仅运行上次失败的测试</td>
-</tr>
-<tr>
-<td><code>--cov=src</code></td>
-<td>生成覆盖率报告（需 <code>pytest-cov</code>）</td>
-</tr>
-</tbody></table>
-<h2><span id="ba-cha-jian-tui-jian">八、插件推荐</span></h2><table>
-<thead>
-<tr>
-<th>插件</th>
-<th>作用</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>pytest-cov</code></td>
-<td>代码覆盖率</td>
-</tr>
-<tr>
-<td><code>pytest-xdist</code></td>
-<td>并发运行（<code>-n auto</code>）</td>
-</tr>
-<tr>
-<td><code>pytest-mock</code></td>
-<td>集成 <code>unittest.mock</code> 并提供 <code>mocker</code> fixture</td>
-</tr>
-<tr>
-<td><code>pytest-django</code></td>
-<td>Django 集成</td>
-</tr>
-<tr>
-<td><code>pytest-asyncio</code></td>
-<td>原生支持 <code>async/await</code></td>
-</tr>
-<tr>
-<td><code>pytest-html</code></td>
-<td>生成漂亮 HTML 报告</td>
-</tr>
-<tr>
-<td><code>pytest-timeout</code></td>
-<td>设置超时</td>
-</tr>
-</tbody></table>
-<h2><span id="jiu-zui-jia-shi-jian-xiao-jie">九、最佳实践小结</span></h2><ol>
-<li><p>项目根目录放 <code>tests/</code> 文件夹，保持与 <code>src/</code> 平级。</p>
-</li>
-<li><p>每个测试文件专注一个小模块，命名 <code>test_&lt;module&gt;.py</code>。</p>
-</li>
-<li><p>优先使用原生 <code>assert</code>，足够直观。</p>
-</li>
-<li><p>把 <strong>环境准备&#x2F;清理</strong> 写成 fixture，提高复用性。</p>
-</li>
-<li><p>用 <code>@pytest.mark.parametrize</code> 减少重复用例。</p>
-</li>
-<li><p>用标记分类“慢测试”“集成测试”等，CI&#x2F;CD 中选择性运行。</p>
-</li>
-<li><p>给公共 fixture 加 <code>scope=&quot;session&quot;</code> 减少耗时。</p>
-</li>
-<li><p>合理配置 <code>pytest.ini</code>&#x2F;<code>pyproject.toml</code>，集中管理选项和标记。</p>
-</li>
-</ol>
-<h2><span id="can-kao-lian-jie">参考链接</span></h2><ul>
-<li><p>官方文档：<a href="https://docs.pytest.org/">https://docs.pytest.org/</a></p>
-</li>
-<li><p>插件列表：<a href="https://docs.pytest.org/en/stable/reference/plugin_list.html">https://docs.pytest.org/en/stable/reference/plugin_list.html</a></p>
-</li>
-<li><p>Awesome pytest：<a href="https://github.com/augustogoulart/awesome-pytest">https://github.com/augustogoulart/awesome-pytest</a></p>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>Python</category>
       </categories>
   </entry>
 </search>
