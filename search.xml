@@ -1,85 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Go并发-channel机制探寻</title>
-    <url>/2025/08/09/Golang/2025-08-09-Go%E5%B9%B6%E5%8F%91-channel%E6%9C%BA%E5%88%B6%E6%8E%A2%E5%AF%BB/</url>
-    <content><![CDATA[<blockquote>
-<p>对于进程间通信与资源交换这一问题，Go 使用了 channel 这一类型安全的消息队列来处理。chan 控制 goroutines 交互的能力从而创建了 Go 同步机制。同时，可以通过指定容量大小来创建无缓冲通道与缓冲通道。<br>下面，将对这两种通道进行介绍，并给出常见的使用模式</p>
-</blockquote>
-<h3><span id="unbuffered-channels-wu-huan-chong-tong-dao">Unbuffered Channels （无缓冲通道）</span></h3><p>无缓冲 chan 没有容量，因此在进行任何交换前都需要两个 goroutine <strong>同时</strong>准备好。若非如此，可能会出现以下两种情况：</p>
-<ul>
-<li><p>当 goroutine 试图将一个资源发送到一个无缓冲的通道，同时没有 goroutine 等待接收该资源时：该通道将锁住发送 goroutine 并使其等待，直到有一个 goroutine 对通道进行接收操作。</p>
-</li>
-<li><p>当 goroutine 尝试从无缓冲通道接收，但此时没有一个 goroutine 等待发送资源时：该通道将锁住接收 goroutine 并使其等待，知道有一个 goroutine 准备将一个资源发送到通道。</p>
-</li>
-</ul>
-<p>根据上面的两种情况可以看出，发送和接收的 goroutine 中的任意一方准备好时，都必须等待对方也准备好才能进行资源的交换。因此，无缓冲通道的本质是<strong>保证双方的同步</strong>。</p>
-<p>还有一点值得注意：对于无缓冲通道，发送方将持续阻塞直到接收方从通道中接收到了传入的值。这保证了接收一定先于发送发生，由此可以 100 % 保证传入的值被收到，但代价是无法预测阻塞（延迟）的时间。</p>
-<h3><span id="buffered-channels-huan-chong-tong-dao">Buffered Channels（缓冲通道）</span></h3><p>与无缓冲通道相比，缓冲通道具有容量，因此情况也会有所不同：</p>
-<ul>
-<li><p>当 goroutine 试图将资源发送到缓冲通道，且该通道已满时：该通道将锁住 goroutine 并使其等待，直到缓冲区重新有可用空间，（有 goroutine 消费了通道中已有的资源）此时发送可立即进行，之前被锁住的 goroutine 可以继续向通道发送资源，直到通道空间再次装满。</p>
-</li>
-<li><p>当 goroutine 尝试从缓冲通道接收数据，而通道为空时：该通道将锁住 goroutine 并使其等待，直到有资源被发送进这个通道。</p>
-</li>
-</ul>
-<p>可以看出，在 chan 创建过程中定义的缓冲区大小可能会极大的影响程序性能。此时通常需要使用 Benchmark 对不同大小的缓冲区做一个基准测试，来选取大小合适的缓冲区（并不是说 buffer 越大，程序的性能一定越好，这视发送与接收方的情况而定）。</p>
-<p>此外，与无缓冲通道相比，缓冲通道的发送先于接收发生。这样做的好处是延迟更小，而代价是不能保证数据到达，可以这样说：越大的 buffer，越小的保障到达。</p>
-<h3><span id="shi-yong-tong-dao-de-chang-jian-mo-shi">使用通道的常见模式</span></h3><h4><span id="1-timing-out">1. Timing out</span></h4><p>使用 channels 做一个超时控制，官方案例如下：</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang">timeout := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-type">bool</span>, <span class="hljs-number">1</span>)<br><span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>	time.Sleep(<span class="hljs-number">1</span> * time.Second)<br>	timeout &lt;- <span class="hljs-literal">true</span><br>&#125;<br></code></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们希望从管道 ch 中接收数据，但我们也希望最多等待1秒钟。为此，我们应该在将数据发送到 ch 前先创建一个信号的管道，并且运行一个 goroutine 进行1秒钟的休眠。</p>
-</blockquote>
-<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><span class="hljs-keyword">select</span> &#123;<br><span class="hljs-keyword">case</span> &lt;-ch:<br>	<span class="hljs-comment">// a read from ch has occurred</span><br><span class="hljs-keyword">case</span> &lt;-timeout:<br>	<span class="hljs-comment">// the read from ch has time out</span><br>&#125;<br></code></pre></td></tr></table></figure>
-
-<blockquote>
-<p>接下来我们可以使用 select 语句来接收来自 ch 或者 timeout 的数据。如果在1秒后没有数据到达 ch，则 case timeout 将被选择并且认为从 ch 读取数据的操作失败了。<br>可以看到，timeout 是一个缓冲区大小为1的管道，它允许超时的 goroutine 向这个管道发送信息并终止。（这个 goroutine）</p>
-</blockquote>
-<p>参考资料：<a href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
-<h4><span id="2-moving-on">2. Moving on</span></h4><p>这个案例的背景是同时向一个数据库的多个分表进行并发查询，而程序只需要其中任一查询结果，因此应该接收最先到达的结果。同时，在接收到查询结果后应该取消其他进行中的查询。</p>
-<p>可以看到，函数 Query 接收一个数据库连接的切片和要查询的字符串。然后它并行的对每一个数据库进行查询并返回接收到的最先响应的结果。</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">Query</span><span class="hljs-params">(conns []Conn, query <span class="hljs-type">string</span>)</span></span> Result &#123;<br>	ch := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> Result)<br>	<span class="hljs-keyword">for</span> _, conn := <span class="hljs-keyword">range</span> conns &#123;<br>		<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(c Conn)</span></span>&#123;<br>			<span class="hljs-keyword">select</span> &#123;<br>			<span class="hljs-keyword">case</span> ch &lt;- c.DoQuery(query):<br>			defult:<br>			&#125;<br>		&#125;(conn)<br>	&#125;<br>	<span class="hljs-keyword">return</span> &lt;-ch<br>&#125;<br></code></pre></td></tr></table></figure>
-
-<blockquote>
-<p>当第一个查询结果被发送进 ch 后，其他的查询将会通过 select 语句的 default 退出。</p>
-</blockquote>
-<p>参考资料：<a href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
-<h4><span id="3-pipeline">3. Pipeline</span></h4><p>流水线模式最经典的例子应该就是素数筛了，代码如下：</p>
-<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><br></code></pre></td></tr></table></figure>
-
-
-<h4><span id="4-fan-out-fan-in">4. Fan-out, Fan-in</span></h4><h4><span id="5-cancellation">5. Cancellation</span></h4><h4><span id="6-contex">6. Contex</span></h4><h3><span id="she-ji-yuan-ze">设计原则</span></h3><ul>
-<li><p>如果任意一个向通道的发送可以导致发送 goroutine 被阻塞，你需要考虑：</p>
-<ul>
-<li>不能使用缓冲数大于1的通道（如果需要，你必须能说明这样做的理由）</li>
-<li>必须知道当发送 goroutine 被阻塞时会发生什么（是否需要处理 &#x2F; 怎么处理 &#x2F; 是否符合预期）</li>
-</ul>
-</li>
-<li><p>如果任意一个向通道的发送不会导致发送 goroutine 被阻塞，你需要考虑：</p>
-<ul>
-<li>你为每一个发送设有额外的缓冲区（比如 Fan Out 模式）</li>
-<li>你能对处于最大容量的缓冲区进行相应的处理（是将数据丢弃还是继续等待）</li>
-</ul>
-</li>
-<li><p>对于缓冲来说，少即是多（Less is more）：</p>
-<ul>
-<li>不要将缓冲的大小与性能挂钩</li>
-<li>缓冲可以减少 goroutine 唤醒的成本</li>
-</ul>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>Golang</category>
-      </categories>
-  </entry>
-  <entry>
     <title>Map</title>
     <url>/2025/09/16/Golang/2025-09-16-Map/</url>
     <content><![CDATA[<blockquote>
 <p>map是Go语言提供的一种抽象数据类型，它表示一组无序的键值对。map对value的类型没有限制，但是对key的类型有严格要求：key的类型应该严格定义了作为“ &#x3D;&#x3D; ”和“ !&#x3D; ”两个操作符的操作数时的行为，因此函数、map、切片不能作为map的key类型。</p>
 </blockquote>
-<h3><span id="go-map-de-di-ceng-ji-zhi">Go Map 的底层机制</span></h3><p>Go运行时使用一张哈希表来实现抽象的map类型。运行时实现了map操作的所有功能，包括查找、插入、删除、遍历等。在编译阶段，Go编译器会将语法层面的map操作重写成运行时对应的函数调用。这里先介绍老版本的map实现：</p>
+<h3><span id="go-map-de-di-ceng-ji-zhi">Go Map 的底层机制</span></h3><p>Go运行时使用一张哈希表来实现抽象的map类型。运行时实现了map操作的所有功能，包括查找、插入、删除、遍历等。在编译阶段，Go编译器会将语法层面的map操作重写成运行时对应的函数调用。这里先介绍老版本的map实现（Go 1.23 根据 Google 的 SwissTable 理念设计出了新的哈希实现 SwissMap，详情可阅读我的另一篇文章）：</p>
 <figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// src/runtime/map_noswiss.go</span><br><br><span class="hljs-comment">// 以下是 map_noswiss.go 中的函数签名</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">makemap</span><span class="hljs-params">(t *maptype, hint <span class="hljs-type">int</span>, h *hmap)</span></span> *hmap<br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">mapaccess1</span><span class="hljs-params">(t *maptype, h *hmap, key unsafe.Pointer)</span></span> unsafe.Pointer<br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">mapassign</span><span class="hljs-params">(t *maptype, h *hmap, key unsafe.Pointer)</span></span> unsafe.Pointer<br><br><span class="hljs-comment">// 以下是几种 map 操作背后的函数转换</span><br>m := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[keyType]valType, capacityhint)<br>m := runtime.makemap(maptype, capacityhint, m)<br><br>v := m[<span class="hljs-string">&quot;key]</span><br><span class="hljs-string">v := runtime.mapaccess1(maptype, m, &quot;</span>key)<br><br>m[<span class="hljs-string">&quot;key] = &quot;</span>value<span class="hljs-string">&quot;</span><br><span class="hljs-string">v := runtime.mapassign(maptype, m, &quot;</span>key)  <span class="hljs-comment">// v 是用于后续存储 value 的空间的地址</span><br></code></pre></td></tr></table></figure>
 
 <h4><span id="he-xin-jie-gou-hmap">核心结构 - hmap</span></h4><figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> hmap <span class="hljs-keyword">struct</span> &#123;<br>	count       <span class="hljs-type">int</span>             <span class="hljs-comment">// 当前 map 中元素的数量，len()的返回值</span><br>	flags       <span class="hljs-type">uint8</span><br>	B           <span class="hljs-type">uint8</span>           <span class="hljs-comment">// 桶的数量多对数</span><br>	noverflow   <span class="hljs-type">uint16</span>          <span class="hljs-comment">// 溢出桶的大概数量</span><br>	hash0       <span class="hljs-type">uint32</span>          <span class="hljs-comment">// 哈希种子，为哈希函数引入随机性</span><br>	<br>	buckets     unsafe.Pointer  <span class="hljs-comment">// 指向 2^B 个桶的数组的指针</span><br>	oldbuckets  unsafe.Pointer  <span class="hljs-comment">// 扩容时指向旧桶数组的指针</span><br>	nevacuate   uintper         <span class="hljs-comment">// 扩容进度计数器</span><br>&#125;<br></code></pre></td></tr></table></figure>
@@ -99,7 +26,7 @@
 <p>可以看到，使用算出的 hash 的低位区的值用于选择桶，高位区的值用于确定桶中 key 的位置</p>
 <h5><span id="b-jie-jue-ha-xi-chong-tu">b)解决哈希冲突：</span></h5><ul>
 <li><strong>链地址法</strong>：每个桶是一个链表头，溢出桶通过指针链接</li>
-<li><strong>开放寻址</strong>：在桶内线性探测寻找空位</li>
+<li><strong>开放寻址</strong>：在桶内线性探测寻找空位<br>gon</li>
 </ul>
 <h5><span id="c-kuo-rong-ji-zhi">c)扩容机制：</span></h5><ul>
 <li>增量扩容：当<code>count &gt; 6.5 * 2^B</code> （负载因子过高）时触发,此时运行时会建立一个两倍于现有规模的bucket数组，但真正的排空和迁移工作是在进行<code>assign</code> 和 <code>delete</code> 操作时逐步进行的。原 bucket 数组会挂在 hmap 的 oldbuckets 指针下面，直到原 buckets 数组中所有数据都迁移到新数组，原 bucktes 数组才会被释放。</li>
@@ -1243,5 +1170,280 @@
         <category>知识图谱</category>
         <category>项目</category>
       </categories>
+  </entry>
+  <entry>
+    <title>Channel</title>
+    <url>/2025/08/09/Golang/2025-08-09-Channel/</url>
+    <content><![CDATA[<blockquote>
+<p>对于进程间通信与资源交换这一问题，Go 使用了 channel 这一类型安全的消息队列来处理。chan 控制 goroutines 交互的能力从而创建了 Go 同步机制。同时，可以通过指定容量大小来创建无缓冲通道与缓冲通道。<br>下面，将对这两种通道进行介绍，并给出常见的使用模式</p>
+</blockquote>
+<h3><span id="unbuffered-channels-wu-huan-chong-tong-dao">Unbuffered Channels （无缓冲通道）</span></h3><p>无缓冲 chan 没有容量，因此在进行任何交换前都需要两个 goroutine <strong>同时</strong>准备好。若非如此，可能会出现以下两种情况：</p>
+<ul>
+<li><p>当 goroutine 试图将一个资源发送到一个无缓冲的通道，同时没有 goroutine 等待接收该资源时：该通道将锁住发送 goroutine 并使其等待，直到有一个 goroutine 对通道进行接收操作。</p>
+</li>
+<li><p>当 goroutine 尝试从无缓冲通道接收，但此时没有一个 goroutine 等待发送资源时：该通道将锁住接收 goroutine 并使其等待，知道有一个 goroutine 准备将一个资源发送到通道。</p>
+</li>
+</ul>
+<p>根据上面的两种情况可以看出，发送和接收的 goroutine 中的任意一方准备好时，都必须等待对方也准备好才能进行资源的交换。因此，无缓冲通道的本质是<strong>保证双方的同步</strong>。</p>
+<p>还有一点值得注意：对于无缓冲通道，发送方将持续阻塞直到接收方从通道中接收到了传入的值。这保证了接收一定先于发送发生，由此可以 100 % 保证传入的值被收到，但代价是无法预测阻塞（延迟）的时间。</p>
+<h3><span id="buffered-channels-huan-chong-tong-dao">Buffered Channels（缓冲通道）</span></h3><p>与无缓冲通道相比，缓冲通道具有容量，因此情况也会有所不同：</p>
+<ul>
+<li><p>当 goroutine 试图将资源发送到缓冲通道，且该通道已满时：该通道将锁住 goroutine 并使其等待，直到缓冲区重新有可用空间，（有 goroutine 消费了通道中已有的资源）此时发送可立即进行，之前被锁住的 goroutine 可以继续向通道发送资源，直到通道空间再次装满。</p>
+</li>
+<li><p>当 goroutine 尝试从缓冲通道接收数据，而通道为空时：该通道将锁住 goroutine 并使其等待，直到有资源被发送进这个通道。</p>
+</li>
+</ul>
+<p>可以看出，在 chan 创建过程中定义的缓冲区大小可能会极大的影响程序性能。此时通常需要使用 Benchmark 对不同大小的缓冲区做一个基准测试，来选取大小合适的缓冲区（并不是说 buffer 越大，程序的性能一定越好，这视发送与接收方的情况而定）。</p>
+<p>此外，与无缓冲通道相比，缓冲通道的发送先于接收发生。这样做的好处是延迟更小，而代价是不能保证数据到达，可以这样说：越大的 buffer，越小的保障到达。</p>
+<h3><span id="shi-yong-tong-dao-de-chang-jian-mo-shi">使用通道的常见模式</span></h3><h4><span id="1-timing-out">1. Timing out</span></h4><p>使用 channels 做一个超时控制，官方案例如下：</p>
+<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang">timeout := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-type">bool</span>, <span class="hljs-number">1</span>)<br><span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>	time.Sleep(<span class="hljs-number">1</span> * time.Second)<br>	timeout &lt;- <span class="hljs-literal">true</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们希望从管道 ch 中接收数据，但我们也希望最多等待1秒钟。为此，我们应该在将数据发送到 ch 前先创建一个信号的管道，并且运行一个 goroutine 进行1秒钟的休眠。</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><span class="hljs-keyword">select</span> &#123;<br><span class="hljs-keyword">case</span> &lt;-ch:<br>	<span class="hljs-comment">// a read from ch has occurred</span><br><span class="hljs-keyword">case</span> &lt;-timeout:<br>	<span class="hljs-comment">// the read from ch has time out</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>接下来我们可以使用 select 语句来接收来自 ch 或者 timeout 的数据。如果在1秒后没有数据到达 ch，则 case timeout 将被选择并且认为从 ch 读取数据的操作失败了。<br>可以看到，timeout 是一个缓冲区大小为1的管道，它允许超时的 goroutine 向这个管道发送信息并终止。（这个 goroutine）</p>
+</blockquote>
+<p>参考资料：<a href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
+<h4><span id="2-moving-on">2. Moving on</span></h4><p>这个案例的背景是同时向一个数据库的多个分表进行并发查询，而程序只需要其中任一查询结果，因此应该接收最先到达的结果。同时，在接收到查询结果后应该取消其他进行中的查询。</p>
+<p>可以看到，函数 Query 接收一个数据库连接的切片和要查询的字符串。然后它并行的对每一个数据库进行查询并返回接收到的最先响应的结果。</p>
+<figure class="highlight golang"><table><tr><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">Query</span><span class="hljs-params">(conns []Conn, query <span class="hljs-type">string</span>)</span></span> Result &#123;<br>	ch := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> Result)<br>	<span class="hljs-keyword">for</span> _, conn := <span class="hljs-keyword">range</span> conns &#123;<br>		<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(c Conn)</span></span>&#123;<br>			<span class="hljs-keyword">select</span> &#123;<br>			<span class="hljs-keyword">case</span> ch &lt;- c.DoQuery(query):<br>			defult:<br>			&#125;<br>		&#125;(conn)<br>	&#125;<br>	<span class="hljs-keyword">return</span> &lt;-ch<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>当第一个查询结果被发送进 ch 后，其他的查询将会通过 select 语句的 default 退出。</p>
+</blockquote>
+<p>参考资料：<a href="https://go.dev/blog/concurrency-timeouts">https://go.dev/blog/concurrency-timeouts</a></p>
+<h4><span id="3-pipeline">3. Pipeline</span></h4><p>Go 官方博客对于流水线的定义如下：</p>
+<p>流水线是通过 channel 连接的一系列阶段，每一个阶段是一组 goroutine 运行的相同的函数：</p>
+<ul>
+<li>通过绑定的管道从上游接收数据</li>
+<li>对接收到的数据进行一些处理，一般是生成新的数据</li>
+<li>将处理后的数据通过管道发送到下游</li>
+</ul>
+<p>流水线模式最经典的例子应该就是素数筛了，代码如下：</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 生成从2开始的自然数序列</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">generate</span><span class="hljs-params">()</span></span> &lt;-<span class="hljs-keyword">chan</span> <span class="hljs-type">int</span> &#123;<br>	ch := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-type">int</span>)<br>	<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>		<span class="hljs-keyword">for</span> i := <span class="hljs-number">2</span>; i ++ &#123;<br>			ch &lt;- i<br>		&#125;<br>	&#125;()<br>	<span class="hljs-keyword">return</span> ch<br>&#125;<br><br><span class="hljs-comment">// 过滤器，将可以被 prime 整除的数过滤</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">filter</span><span class="hljs-params">(in &lt;- <span class="hljs-keyword">chan</span> <span class="hljs-type">int</span>, prime <span class="hljs-type">int</span>)</span></span> &lt;-<span class="hljs-keyword">chan</span> <span class="hljs-type">int</span> &#123;<br>	out := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-type">int</span>)<br>	<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>		<span class="hljs-keyword">for</span> &#123; <br>			num := &lt;- in<br>			<span class="hljs-keyword">if</span> num % prime != <span class="hljs-number">0</span>&#123;<br>				out &lt;- num	<br>			&#125;<br>		&#125;<br>	&#125;()<br>	<span class="hljs-keyword">return</span> out<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">sieve</span><span class="hljs-params">()</span></span> &lt;- <span class="hljs-keyword">chan</span> <span class="hljs-type">int</span> &#123;<br>	out := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-type">int</span>)<br>	<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>		ch := generate()<br>		<span class="hljs-keyword">for</span> &#123;<br>			prime := &lt;-ch<br>			out &lt;- prime<br>			ch = filter(ch, prime) <span class="hljs-comment">// 用当前素数过滤输入流</span><br>		&#125;<br>	&#125;<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> &#123;<br>	primes := sieve()<br>	<span class="hljs-comment">// 打印出前100个素数</span><br>	<span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">100</span>; i ++ &#123;<br>		fmt.Println(&lt;- primes)<br>	&#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>可以看到，在 sieve 函数中，prime 从上游管道接收生成器构造的自然数，将其进行过滤后传输给下游。</p>
+</blockquote>
+<h4><span id="4-fan-out-fan-in">4. Fan-out, Fan-in</span></h4><h4><span id="5-cancellation">5. Cancellation</span></h4><h4><span id="6-contex">6. Contex</span></h4><h3><span id="she-ji-yuan-ze">设计原则</span></h3><ul>
+<li><p>如果任意一个向通道的发送可以导致发送 goroutine 被阻塞，你需要考虑：</p>
+<ul>
+<li>不能使用缓冲数大于1的通道（如果需要，你必须能说明这样做的理由）</li>
+<li>必须知道当发送 goroutine 被阻塞时会发生什么（是否需要处理 &#x2F; 怎么处理 &#x2F; 是否符合预期）</li>
+</ul>
+</li>
+<li><p>如果任意一个向通道的发送不会导致发送 goroutine 被阻塞，你需要考虑：</p>
+<ul>
+<li>你为每一个发送设有额外的缓冲区（比如 Fan Out 模式）</li>
+<li>你能对处于最大容量的缓冲区进行相应的处理（是将数据丢弃还是继续等待）</li>
+</ul>
+</li>
+<li><p>对于缓冲来说，少即是多（Less is more）：</p>
+<ul>
+<li>不要将缓冲的大小与性能挂钩</li>
+<li>缓冲可以减少 goroutine 唤醒的成本</li>
+</ul>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Golang</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>SwissMap</title>
+    <url>/2025/09/17/Golang/2025-09-17-SwissMap/</url>
+    <content><![CDATA[<blockquote>
+<p>Go 1.23 在<code>runtime</code>包中引入了新的 SwissMap 实现，这是 Go 团队基于 Google 的 SwissTable 设计理念开发的新哈希表实现，旨在提供更好的性能和内存效率。</p>
+</blockquote>
+<h3><span id="go-swissmap-he-xin-shu-ju-jie-gou">Go SwissMap 核心数据结构</span></h3><h4><span id="1-ding-ceng-ha-xi-biao-jie-gou-hmap">1.顶层哈希表结构-hmap</span></h4><figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> hmap <span class="hljs-keyword">struct</span> &#123;<br>    count     <span class="hljs-type">int</span>       <span class="hljs-comment">// 当前元素数量</span><br>    flags     <span class="hljs-type">uint8</span>     <span class="hljs-comment">// 状态标志位</span><br>    B         <span class="hljs-type">uint8</span>     <span class="hljs-comment">// 桶数量的对数 (2^B 个桶)</span><br>    noverflow <span class="hljs-type">uint16</span>    <span class="hljs-comment">// 溢出桶数量</span><br>    hash0     <span class="hljs-type">uint32</span>    <span class="hljs-comment">// 哈希种子</span><br>    <br>    <span class="hljs-comment">// SwissMap 新增的核心字段</span><br>    metadata  unsafe.Pointer <span class="hljs-comment">// 指向元数据数组的指针</span><br>    buckets   unsafe.Pointer <span class="hljs-comment">// 指向桶数组的指针</span><br>    oldbuckets unsafe.Pointer <span class="hljs-comment">// 扩容时的旧桶数组</span><br>    nevacuate  <span class="hljs-type">uintptr</span>       <span class="hljs-comment">// 扩容进度计数器</span><br>    <br>    <span class="hljs-comment">// SIMD 相关字段</span><br>    groupSize <span class="hljs-type">uintptr</span>       <span class="hljs-comment">// SIMD 组大小（通常是16）</span><br>    ctrlBytes []<span class="hljs-type">byte</span>        <span class="hljs-comment">// 控制字节数组</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>可以看到，相比于普通的 Map，SwissMap 新增了一个指向元数据数组的指针<code>metadata</code>和用于 SIMD 查询的相关字段</p>
+</blockquote>
+<h4><span id="2-yuan-shu-ju-kong-zhi-jie-gou">2.元数据控制结构</span></h4><figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 控制字节的语义（每个字节对应一个槽位）</span><br><span class="hljs-keyword">const</span> (<br>    ctrlEmpty   = <span class="hljs-number">0x00</span> <span class="hljs-comment">// 空槽位</span><br>    ctrlDeleted = <span class="hljs-number">0xFE</span> <span class="hljs-comment">// 已删除槽位</span><br>    ctrlSentinel = <span class="hljs-number">0xFF</span> <span class="hljs-comment">// 哨兵值（用于SIMD）</span><br>    <span class="hljs-comment">// 其他值: 哈希值的高7位</span><br>)<br><br><span class="hljs-comment">// 元数据组（缓存行对齐）</span><br><span class="hljs-keyword">type</span> metadataGroup <span class="hljs-keyword">struct</span> &#123;<br>    ctrl [<span class="hljs-number">16</span>]<span class="hljs-type">uint8</span>  <span class="hljs-comment">// 16字节的控制信息（SIMD友好）</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4><span id="3-tong-jie-gou-bmap">3.桶结构-bmap</span></h4><figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> bmap <span class="hljs-keyword">struct</span> &#123;<br>    <span class="hljs-comment">// 元数据部分（单独存储以提高缓存效率）</span><br>    tophash [bucketCnt]<span class="hljs-type">uint8</span> <span class="hljs-comment">// 旧版兼容字段</span><br>    <br>    <span class="hljs-comment">// 键值对数据（实际存储时可能分开）</span><br>    keys   [bucketCnt]keytype   <span class="hljs-comment">// 键数组</span><br>    values [bucketCnt]valuetype <span class="hljs-comment">// 值数组</span><br>    <br>    <span class="hljs-comment">// 溢出桶指针</span><br>    overflow *bmap<br>&#125;<br></code></pre></td></tr></table></figure>
+
+]]></content>
+  </entry>
+  <entry>
+    <title>sync包</title>
+    <url>/2025/09/29/Golang/2025-09-29-sync%E5%8C%85/</url>
+    <content><![CDATA[<blockquote>
+<p>Go 标准库的sync包提供了针对传统基于共享内存并发模型的基本同步原语，包括互斥锁（sync.Mutex）、读写锁（sync.RWMutex）、条件变量（sync.Cond）等工具。</p>
+</blockquote>
+<h3><span id="sync-mutex-de-ding-yi">sync.Mutex 的定义：</span></h3><figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> Mutex <span class="hljs-keyword">struct</span> &#123;<br>	state <span class="hljs-type">int32</span><br>	sema  <span class="hljs-type">uint32</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>state：表示当前互斥锁的状态</li>
+<li>sema：用于控制锁状态的信号量</li>
+</ul>
+<p>由 Mutex 的定义，下面引出在使用 sync 包时需要注意的点：</p>
+<p><strong>不要在首次使用 sync 包中定义的结构类型后对其进行复制操作</strong></p>
+<blockquote>
+<p>这样会将使用过的锁的状态一同复制，可能会造成死锁等不可预期的结果。<br>因此在使用 sync 包中类型时，更应该通过<strong>闭包</strong>或<strong>传递指针</strong>的方式进行。</p>
+</blockquote>
+]]></content>
+  </entry>
+  <entry>
+    <title>[复盘]混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘</title>
+    <url>/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-26-%5B%E5%A4%8D%E7%9B%98%5D%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</url>
+    <content><![CDATA[<blockquote>
+<p><strong>摘要</strong>：在 EHS 安全合规领域，如何让 AI 真正“读懂”晦涩的法规文档？本文记录了我基于 <strong>Go (网关) + Python (大脑)</strong> 混合架构，结合 <strong>Qdrant</strong> 与 <strong>DeepSeek</strong>，构建 RAG 系统的全过程。从 gRPC 的 4MB 限制到上下文窗口的调优，复盘 v0.1.0 版本的关键技术决策与实战踩坑。</p>
+</blockquote>
+<h2><span id="1-yuan-qi-dang-go-de-kuai-yu-shang-python-de-zhi">1. 缘起：当 Go 的快遇上 Python 的智</span></h2><p>在构建一个垂直领域的 RAG (检索增强生成) 系统时，技术选型往往面临两难：</p>
+<ul>
+<li><p><strong>全 Python 栈</strong>（如 LangChain 生态）：AI 组件开箱即用，但在处理高并发 HTTP 请求、大文件 I&#x2F;O 吞吐时，性能与资源占用往往成为瓶颈。</p>
+</li>
+<li><p><strong>全 Go 栈</strong>：拥有极致的并发性能和极低的部署成本，但缺乏成熟的 PDF 深度解析、Agent 编排等 AI 生态。</p>
+</li>
+</ul>
+<p>为了兼顾性能与生态，我决定采用<strong>异构混合架构</strong>来构建 <strong>Chimera-RAG</strong>（奇美拉）。 <strong>Chimera</strong> 寓意着集各家所长的混合体——利用 <strong>Go</strong> 处理高并发网关与任务调度，利用 <strong>Python</strong> 处理复杂的文档解析与推理，两者通过 <strong>gRPC</strong> 紧密协作，取长补短。</p>
+<hr>
+<h2><span id="2-jia-gou-shen-du-jie-xi-v0-1-0">2. 架构深度解析 (v0.1.0)</span></h2><p>Chimera-RAG 不是一个单体应用，而是一个典型的微服务架构。我们将系统划分为四个核心层级，每一层各司其职，互不干扰。</p>
+<p><img src="https://oss-pai-ou3opkiglu3o9cspyq-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/blog/Chimera-%20RAG%20v0.1.0.png" alt="Chimera- RAG v0.1.0.png"></p>
+<h4><span id="2-1-jie-ru-ceng-gateway-layer-go-de-zhu-chang">2.1 接入层 (Gateway Layer) - Go 的主场</span></h4><ul>
+<li><p><strong>技术栈</strong>: Go (Gin) + SSE (Server-Sent Events)</p>
+</li>
+<li><p><strong>职责</strong>:</p>
+<ul>
+<li><p>作为系统的“守门员”，处理所有 HTTP 请求、鉴权与流控。</p>
+</li>
+<li><p><strong>零拷贝上传</strong>: 接收前端的大文件流，直接Pipe到 MinIO 对象存储，最小化内存占用。</p>
+</li>
+<li><p><strong>长连接管理</strong>: 维持与前端的 SSE 连接，像“打字机”一样实时推送 AI 的思考过程与回答。</p>
+</li>
+</ul>
+</li>
+<li><p><strong>设计思考</strong>: 这一层选 Go 是无比正确的。Goroutine 极低的切换成本，使其在处理海量并发连接和 I&#x2F;O 密集型任务时，性能远超 Python 的 asyncio 或线程池方案。之后有时间会考虑做个benchmark进行精细对比。</p>
+</li>
+</ul>
+<h4><span id="2-2-ren-wu-diao-du-ceng-scheduling-layer-yi-bu-jie-ou">2.2 任务调度层 (Scheduling Layer) - 异步解耦</span></h4><ul>
+<li><p><strong>技术栈</strong>: Redis (List&#x2F;PubSub) + Go Worker Pool</p>
+</li>
+<li><p><strong>职责</strong>:</p>
+<ul>
+<li><p>实现<strong>用户体验与繁重计算的解耦</strong>。前端上传文件后，Go 网关并不等待解析完成，而是将任务丢进 Redis 队列并立即返回“上传成功”。</p>
+</li>
+<li><p>后台的 Go Worker 默默消费任务，负责协调数据的流动。</p>
+</li>
+</ul>
+</li>
+<li><p><strong>设计思考</strong>: 如果没有这一层，解析一个 500 页的 PDF 会导致浏览器长时间转圈等待。异步化是提升用户体验的关键一步。当然，在使用时也暴露了新的问题：没有做批量上传和文档归类，会考虑在后续进行优化。</p>
+</li>
+</ul>
+<h4><span id="2-3-ren-zhi-ji-suan-ceng-cognitive-layer-python-de-wu-tai">2.3 认知计算层 (Cognitive Layer) - Python 的舞台</span></h4><ul>
+<li><p><strong>技术栈</strong>: Python + gRPC + PyMuPDF + SentenceTransformers</p>
+</li>
+<li><p><strong>职责</strong>:</p>
+<ul>
+<li><p>它是系统的“大脑”，负责“脏活累活”。接收 Go 传来的文件流，利用 <code>PyMuPDF</code> 将 PDF“嚼碎”成文本切片，再调用 Embedding 模型将其向量化。</p>
+</li>
+<li><p>通过 <strong>gRPC Server</strong> 暴露内部能力，供 Go Worker 调用。</p>
+</li>
+</ul>
+</li>
+<li><p><strong>设计思考</strong>: 选择 gRPC 而不是 HTTP RESTful，是为了利用 Protobuf 的高效序列化和 HTTP&#x2F;2 的多路复用特性，确保在内部服务间传输大文本和向量数据时的高性能。</p>
+</li>
+</ul>
+<h4><span id="2-4-ji-yi-yu-sheng-cheng-ceng-memory-amp-generation">2.4 记忆与生成层 (Memory &amp; Generation)</span></h4><ul>
+<li><p><strong>技术栈</strong>: Qdrant + DeepSeek V3 API</p>
+</li>
+<li><p><strong>职责</strong>:</p>
+<ul>
+<li><p><strong>Qdrant</strong>: 存储向量化的“长期记忆”。我们在 Payload 中存储了 PageNumber 和原文片段，这是实现“引用溯源”的基础。</p>
+</li>
+<li><p><strong>DeepSeek</strong>: 最终的“表达者”。它基于我们检索到的上下文，组织语言回答用户，并支持 Markdown 格式输出。</p>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2><span id="3-guan-jian-ji-zhu-tiao-zhan-yu-cai-keng-shi-lu">3. 关键技术挑战与“踩坑”实录</span></h2><p>v0.1.0 的开发并非一帆风顺，以下是三个印象最深刻的技术卡点与解决方案。</p>
+<h3><span id="3-1-grpc-de-4mb-yin-xing-qiang">3.1 gRPC 的“4MB”隐形墙</span></h3><ul>
+<li><p><strong>现象</strong>：在测试上传我的硕士开题报告（约 8.5MB）时，Python gRPC Server 抛出了 <code>ResourceExhausted</code> 错误，拒绝接收。</p>
+</li>
+<li><p><strong>根因</strong>：gRPC 默认限制单次消息大小为 4MB (4,194,304 bytes)。这是一个常见的微服务通信陷阱。</p>
+</li>
+<li><p><strong>解决</strong>：需要在 Python Server 端和 Go Client 端同时修改配置。</p>
+<ul>
+<li><p><strong>Go Client</strong>: 在 <code>grpc.Dial</code> 时添加 <code>grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(100*1024*1024), ...)</code>。</p>
+</li>
+<li><p><strong>Python Server</strong>: 在 <code>grpc.server</code> 初始化时添加 <code>options=[(&#39;grpc.max_receive_message_length&#39;, 100*1024*1024), ...]</code>。</p>
+</li>
+<li><p>将阈值统一提升至 100MB，以适应未来的高清扫描件需求。</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3><span id="3-2-huan-jue-zhi-li-yu-shang-xia-wen-chuang-kou-diao-you">3.2 “幻觉”治理与上下文窗口调优</span></h3><ul>
+<li><p><strong>现象</strong>：起初，对于一些细节问题，DeepSeek 的回答非常空泛，甚至提示“提供的上下文信息不完整，无法回答”。</p>
+</li>
+<li><p><strong>根因</strong>：</p>
+<ol>
+<li><p><strong>检索量不足</strong>：为了省 Token，最初只检索了 <code>TopK=3</code> 个切片，导致关键信息遗漏。</p>
+</li>
+<li><p><strong>Prompt 结构单一</strong>：只喂给了模型纯文本，没有包含页码等元数据，模型无法建立空间感。</p>
+</li>
+</ol>
+</li>
+<li><p><strong>解决</strong>：</p>
+<ol>
+<li><p><strong>扩大视野</strong>：充分利用 DeepSeek V3 的长上下文能力和低成本优势，将 <code>TopK</code> 提升至 15。</p>
+</li>
+<li><p><strong>结构化 Prompt</strong>：重构提示词模板，显式注入结构化信息：</p>
+ <figure class="highlight jboss-cli"><table><tr><td class="code"><pre><code class="hljs jboss-cli">背景知识：<br>[片段1] <span class="hljs-params">(第5页)</span>: <span class="hljs-string">...</span>原文内容<span class="hljs-string">...</span><br>[片段2] <span class="hljs-params">(第8页)</span>: <span class="hljs-string">...</span>原文内容<span class="hljs-string">...</span><br><span class="hljs-string">...</span><br>用户问题：xxx<br></code></pre></td></tr></table></figure>
+<p> 这显著提升了回答的准确率和“引用感”。</p>
+</li>
+</ol>
+</li>
+</ul>
+<h3><span id="3-3-ji-su-qian-duan-yan-zheng-bi-huan">3.3 极速前端：验证闭环</span></h3><ul>
+<li><p><strong>背景</strong>：由于后端进度过快，为了验证全链路闭环，需要快速搭建一个前端界面。</p>
+</li>
+<li><p><strong>解决</strong>：基于 <strong>Vite + Vue 3 + Arco Design</strong>，完成了一个单页应用。利用 <code>@microsoft/fetch-event-source</code> 库完美处理了后端的 SSE 流式响应，配合 <code>markdown-it</code> 实现了类似 ChatGPT 的逐字打印渲染效果。这证明了全栈能力在快速原型验证中的重要性。</p>
+</li>
+</ul>
+<hr>
+<h2><span id="4-cheng-guo">4. 成果</span></h2><p>目前，Chimera-RAG 的 v0.1.0 版本已经具备了“真实阅读能力”。它不再是简单地根据文件名猜答案，而是能精准定位到 PDF 文档中的具体段落，并结合上下文进行推理。</p>
+<hr>
+<h2><span id="5-zhan-wang-v0-2-0">5. 展望 v0.2.0</span></h2><p>v0.1.0 的成功验证了异构架构的可行性，但也暴露了 MVP 与企业级产品之间的差距。为了构建更强大、更安全的知识库平台，v0.2.0 的技术演进路线已规划完毕：</p>
+<ul>
+<li><p><strong>数据基座升级</strong>：</p>
+<ul>
+<li><p>引入 <strong>PostgreSQL</strong>：存储用户体系、组织架构及文件夹目录树，实现 RBAC 权限控制。</p>
+</li>
+<li><p>引入 <strong>NebulaGraph</strong>：构建领域知识图谱，实现 GraphRAG，提升对复杂实体关系的推理能力。</p>
+</li>
+</ul>
+</li>
+<li><p><strong>解析能力进化</strong>：</p>
+<ul>
+<li>针对目前 PyMuPDF 对表格和多栏排版支持不佳的问题，计划切换至 SOTA 方案 <strong>Docling</strong> 或 <strong>Unstructured</strong>，实现文档的结构化高保真解析。</li>
+</ul>
+</li>
+<li><p><strong>多智能体编排</strong>：</p>
+<ul>
+<li>Python 端将引入 <strong>LangGraph</strong>，将当前的单体逻辑拆分为 Router、Retriever、Critic 等多个 Agent，实现自我修正与反思能力。</li>
+</ul>
+</li>
+<li><p><strong>全链路可观测性</strong>：</p>
+<ul>
+<li>接入 <strong>Langfuse</strong>，实现对 Prompt 传输、Token 消耗和响应延迟的全链路追踪与调试。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2><span id="6-jie-yu">6. 结语</span></h2><p>Chimera-RAG 的 v0.1.0 版本是一个激动人心的开始。它证明了 <strong>“Go 工程底座 + Python AI 引擎”</strong> 这一混合范式在构建高性能、智能化应用时的巨大潜力。</p>
+<p>未来的 v0.2.0，我们将致力于让它从一个“聪明的工具”进化为一个“专业的平台”。</p>
+<p>代码已开源，欢迎 Star 与 PR！</p>
+<blockquote>
+<p>Project Repo: [<a href="https://github.com/stack-echo/Chimera-RAG.git]">https://github.com/stack-echo/Chimera-RAG.git]</a></p>
+</blockquote>
+]]></content>
   </entry>
 </search>

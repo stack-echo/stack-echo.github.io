@@ -27,7 +27,7 @@
 <meta property="og:description" content="map是Go语言提供的一种抽象数据类型，它表示一组无序的键值对。map对value的类型没有限制，但是对key的类型有严格要求：key的类型应该严格定义了作为“ &#x3D;&#x3D; ”和“ !&#x3D; ”两个操作符的操作数时的行为，因此函数、map、切片不能作为map的key类型。  Go Map 的底层机制Go运行时使用一张哈希表来实现抽象的map类型。运行时实现了map操作的所有功">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2025-09-16T08:16:19.000Z">
-<meta property="article:modified_time" content="2025-09-16T11:29:23.740Z">
+<meta property="article:modified_time" content="2025-09-17T12:25:09.667Z">
 <meta property="article:author" content="Xu Yuyang">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -227,7 +227,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          1.2k 字
+          1.3k 字
         
       </span>
     
@@ -283,7 +283,7 @@
                 <blockquote>
 <p>map是Go语言提供的一种抽象数据类型，它表示一组无序的键值对。map对value的类型没有限制，但是对key的类型有严格要求：key的类型应该严格定义了作为“ &#x3D;&#x3D; ”和“ !&#x3D; ”两个操作符的操作数时的行为，因此函数、map、切片不能作为map的key类型。</p>
 </blockquote>
-<h3><span id="go-map-de-di-ceng-ji-zhi">Go Map 的底层机制</span></h3><p>Go运行时使用一张哈希表来实现抽象的map类型。运行时实现了map操作的所有功能，包括查找、插入、删除、遍历等。在编译阶段，Go编译器会将语法层面的map操作重写成运行时对应的函数调用。这里先介绍老版本的map实现：</p>
+<h3><span id="go-map-de-di-ceng-ji-zhi">Go Map 的底层机制</span></h3><p>Go运行时使用一张哈希表来实现抽象的map类型。运行时实现了map操作的所有功能，包括查找、插入、删除、遍历等。在编译阶段，Go编译器会将语法层面的map操作重写成运行时对应的函数调用。这里先介绍老版本的map实现（Go 1.23 根据 Google 的 SwissTable 理念设计出了新的哈希实现 SwissMap，详情可阅读我的另一篇文章）：</p>
 <figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// src/runtime/map_noswiss.go</span><br><br><span class="hljs-comment">// 以下是 map_noswiss.go 中的函数签名</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">makemap</span><span class="hljs-params">(t *maptype, hint <span class="hljs-type">int</span>, h *hmap)</span></span> *hmap<br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">mapaccess1</span><span class="hljs-params">(t *maptype, h *hmap, key unsafe.Pointer)</span></span> unsafe.Pointer<br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">mapassign</span><span class="hljs-params">(t *maptype, h *hmap, key unsafe.Pointer)</span></span> unsafe.Pointer<br><br><span class="hljs-comment">// 以下是几种 map 操作背后的函数转换</span><br>m := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[keyType]valType, capacityhint)<br>m := runtime.makemap(maptype, capacityhint, m)<br><br>v := m[<span class="hljs-string">&quot;key]</span><br><span class="hljs-string">v := runtime.mapaccess1(maptype, m, &quot;</span>key)<br><br>m[<span class="hljs-string">&quot;key] = &quot;</span>value<span class="hljs-string">&quot;</span><br><span class="hljs-string">v := runtime.mapassign(maptype, m, &quot;</span>key)  <span class="hljs-comment">// v 是用于后续存储 value 的空间的地址</span><br></code></pre></td></tr></table></figure>
 
 <h4><span id="he-xin-jie-gou-hmap">核心结构 - hmap</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> hmap <span class="hljs-keyword">struct</span> &#123;<br>	count       <span class="hljs-type">int</span>             <span class="hljs-comment">// 当前 map 中元素的数量，len()的返回值</span><br>	flags       <span class="hljs-type">uint8</span><br>	B           <span class="hljs-type">uint8</span>           <span class="hljs-comment">// 桶的数量多对数</span><br>	noverflow   <span class="hljs-type">uint16</span>          <span class="hljs-comment">// 溢出桶的大概数量</span><br>	hash0       <span class="hljs-type">uint32</span>          <span class="hljs-comment">// 哈希种子，为哈希函数引入随机性</span><br>	<br>	buckets     unsafe.Pointer  <span class="hljs-comment">// 指向 2^B 个桶的数组的指针</span><br>	oldbuckets  unsafe.Pointer  <span class="hljs-comment">// 扩容时指向旧桶数组的指针</span><br>	nevacuate   uintper         <span class="hljs-comment">// 扩容进度计数器</span><br>&#125;<br></code></pre></td></tr></table></figure>
@@ -303,7 +303,7 @@
 <p>可以看到，使用算出的 hash 的低位区的值用于选择桶，高位区的值用于确定桶中 key 的位置</p>
 <h5><span id="b-jie-jue-ha-xi-chong-tu">b)解决哈希冲突：</span></h5><ul>
 <li><strong>链地址法</strong>：每个桶是一个链表头，溢出桶通过指针链接</li>
-<li><strong>开放寻址</strong>：在桶内线性探测寻找空位</li>
+<li><strong>开放寻址</strong>：在桶内线性探测寻找空位<br>gon</li>
 </ul>
 <h5><span id="c-kuo-rong-ji-zhi">c)扩容机制：</span></h5><ul>
 <li>增量扩容：当<code>count &gt; 6.5 * 2^B</code> （负载因子过高）时触发,此时运行时会建立一个两倍于现有规模的bucket数组，但真正的排空和迁移工作是在进行<code>assign</code> 和 <code>delete</code> 操作时逐步进行的。原 bucket 数组会挂在 hmap 的 oldbuckets 指针下面，直到原 buckets 数组中所有数据都迁移到新数组，原 bucktes 数组才会被释放。</li>
@@ -408,6 +408,12 @@
                 <div class="post-prevnext my-3">
                   <article class="post-prev col-6">
                     
+                    
+                      <a href="/2025/09/17/Golang/2025-09-17-SwissMap/" title="SwissMap">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">SwissMap</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
                     
                   </article>
                   <article class="post-next col-6">

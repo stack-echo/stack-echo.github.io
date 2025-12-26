@@ -19,21 +19,21 @@
   <meta name="author" content="Xu Yuyang">
   <meta name="keywords" content="">
   
-    <meta name="description" content="Slice（切片）是对底层数组的一个连续片段的引用，可以称其为数组的“描述符。它为我们提供了动态大小的、灵活的视图，但同时又在性能上接近于数组。  Slice的底层数据结构在 Go 的运行时中，一个 Slice 本质上是一个包含三个字段的结构体： 12345type slice struct &#123;	array unsafe.Pointer &#x2F;&#x2F; 指向底层数组的指针	len   int">
+    <meta name="description" content="Go 1.23 在runtime包中引入了新的 SwissMap 实现，这是 Go 团队基于 Google 的 SwissTable 设计理念开发的新哈希表实现，旨在提供更好的性能和内存效率。  Go SwissMap 核心数据结构1.顶层哈希表结构-hmap1234567891011121314151617type hmap struct &#123;    count     int">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Slice">
-<meta property="og:url" content="https://stackecho.blog/2025/09/16/Golang/2025-09-16-Slice/index.html">
+<meta property="og:title" content="SwissMap">
+<meta property="og:url" content="https://stackecho.blog/2025/09/17/Golang/2025-09-17-SwissMap/index.html">
 <meta property="og:site_name" content="StackEcho">
-<meta property="og:description" content="Slice（切片）是对底层数组的一个连续片段的引用，可以称其为数组的“描述符。它为我们提供了动态大小的、灵活的视图，但同时又在性能上接近于数组。  Slice的底层数据结构在 Go 的运行时中，一个 Slice 本质上是一个包含三个字段的结构体： 12345type slice struct &#123;	array unsafe.Pointer &#x2F;&#x2F; 指向底层数组的指针	len   int">
+<meta property="og:description" content="Go 1.23 在runtime包中引入了新的 SwissMap 实现，这是 Go 团队基于 Google 的 SwissTable 设计理念开发的新哈希表实现，旨在提供更好的性能和内存效率。  Go SwissMap 核心数据结构1.顶层哈希表结构-hmap1234567891011121314151617type hmap struct &#123;    count     int">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2025-09-16T06:02:22.000Z">
-<meta property="article:modified_time" content="2025-09-16T11:29:23.739Z">
+<meta property="article:published_time" content="2025-09-17T08:16:48.000Z">
+<meta property="article:modified_time" content="2025-09-29T12:06:58.747Z">
 <meta property="article:author" content="Xu Yuyang">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>Slice - StackEcho</title>
+  <title>SwissMap - StackEcho</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -204,7 +204,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="Slice"></span>
+            <span id="subtitle" data-typed-text="SwissMap"></span>
           
         </div>
 
@@ -215,8 +215,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2025-09-16 14:02" pubdate>
-          2025年9月16日 下午
+        <time datetime="2025-09-17 16:16" pubdate>
+          2025年9月17日 下午
         </time>
       </span>
     
@@ -227,7 +227,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          1.2k 字
+          351 字
         
       </span>
     
@@ -238,7 +238,7 @@
         
         
         
-          11 分钟
+          3 分钟
         
       </span>
     
@@ -275,79 +275,23 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">Slice</h1>
+            <h1 id="seo-header">SwissMap</h1>
             
             
               <div class="markdown-body">
                 
                 <blockquote>
-<p><strong>Slice（切片）是对底层数组的一个连续片段的引用，可以称其为数组的“描述符</strong>。它为我们提供了动态大小的、灵活的视图，但同时又在性能上接近于数组。</p>
+<p>Go 1.23 在<code>runtime</code>包中引入了新的 SwissMap 实现，这是 Go 团队基于 Google 的 SwissTable 设计理念开发的新哈希表实现，旨在提供更好的性能和内存效率。</p>
 </blockquote>
-<h3><span id="slice-de-di-ceng-shu-ju-jie-gou">Slice的底层数据结构</span></h3><p>在 Go 的运行时中，一个 Slice 本质上是一个包含三个字段的结构体：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> slice <span class="hljs-keyword">struct</span> &#123;<br>	array unsafe.Pointer <span class="hljs-comment">// 指向底层数组的指针</span><br>	<span class="hljs-built_in">len</span>   <span class="hljs-type">int</span>            <span class="hljs-comment">// 当前切片的长度</span><br>	<span class="hljs-built_in">cap</span>   <span class="hljs-type">int</span>            <span class="hljs-comment">// 当前切片的容量</span><br>&#125;<br></code></pre></td></tr></table></figure>
+<h3><span id="go-swissmap-he-xin-shu-ju-jie-gou">Go SwissMap 核心数据结构</span></h3><h4><span id="1-ding-ceng-ha-xi-biao-jie-gou-hmap">1.顶层哈希表结构-hmap</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> hmap <span class="hljs-keyword">struct</span> &#123;<br>    count     <span class="hljs-type">int</span>       <span class="hljs-comment">// 当前元素数量</span><br>    flags     <span class="hljs-type">uint8</span>     <span class="hljs-comment">// 状态标志位</span><br>    B         <span class="hljs-type">uint8</span>     <span class="hljs-comment">// 桶数量的对数 (2^B 个桶)</span><br>    noverflow <span class="hljs-type">uint16</span>    <span class="hljs-comment">// 溢出桶数量</span><br>    hash0     <span class="hljs-type">uint32</span>    <span class="hljs-comment">// 哈希种子</span><br>    <br>    <span class="hljs-comment">// SwissMap 新增的核心字段</span><br>    metadata  unsafe.Pointer <span class="hljs-comment">// 指向元数据数组的指针</span><br>    buckets   unsafe.Pointer <span class="hljs-comment">// 指向桶数组的指针</span><br>    oldbuckets unsafe.Pointer <span class="hljs-comment">// 扩容时的旧桶数组</span><br>    nevacuate  <span class="hljs-type">uintptr</span>       <span class="hljs-comment">// 扩容进度计数器</span><br>    <br>    <span class="hljs-comment">// SIMD 相关字段</span><br>    groupSize <span class="hljs-type">uintptr</span>       <span class="hljs-comment">// SIMD 组大小（通常是16）</span><br>    ctrlBytes []<span class="hljs-type">byte</span>        <span class="hljs-comment">// 控制字节数组</span><br>&#125;<br></code></pre></td></tr></table></figure>
 
-<ul>
-<li><code>array</code>: 一个指针，指向Slice在底层真正使用的数组，数据存储在这个数组中</li>
-<li><code>len</code>: 这个 Slice 可见和可访问的元素个数，slice[len - 1] 是最后一个有效元素</li>
-<li><code>cap</code>: 从 array 指针指向的位置开始，到底层数组末尾的元素个数，它决定了这个 Slice 最大能扩展多长而无需分配内存</li>
-</ul>
-<h3><span id="qie-pian-ji-zhi-de-you-shi">切片机制的优势</span></h3><h4><span id="1-dong-tai-kuo-rong">1.动态扩容</span></h4><p>当使用 <code>append</code> 向 Slice 添加元素，并且超过其当前容量（<code>len == cap</code>）时，Go 的运行时会自动触发扩容机制：</p>
-<ul>
-<li>分配一块新的、更大的内存空间</li>
-<li>将 Slice 原有的所有元素复制到新的数组中去</li>
-<li>将新元素追加到新数组的末尾</li>
-<li><code>array</code> 指针指向新数组，<code>len</code> 长度增加，<code>cap</code> 设置为新数组长度</li>
-</ul>
-<p><strong>扩容策略</strong>（阈值视版本而定，具体需要查阅源码 <code>//$GOROOT/src/runtime/slice.go</code> 中的定义）</p>
-<ul>
-<li>若原切片的容量小于 1024，新容量会翻倍</li>
-<li>若原切片的容量大于 1024，新容量会以 1.25 倍的速度增长，直到满足需求</li>
-</ul>
-<h4><span id="2-gao-xiao-de-nei-cun-gong-xiang-he-shi-tu">2.高效的内存共享和视图</span></h4><p>由于 Slice 只是对底层数组的一个引用，所以创建新的切片（进行切片操作）会非常高效，应为它不会复制底层的数据。</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs go">originArr := [<span class="hljs-number">5</span>]<span class="hljs-type">int</span>&#123;<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>&#125;<br>silce1 := originArr[<span class="hljs-number">1</span>:<span class="hljs-number">4</span>]  <span class="hljs-comment">// len=3, cap=4 =&gt; [2, 3, 4]</span><br>slice2 := slice1[:<span class="hljs-number">2</span>]      <span class="hljs-comment">// len=2, cap=4 =&gt; [2, 3]</span><br></code></pre></td></tr></table></figure>
+<blockquote>
+<p>可以看到，相比于普通的 Map，SwissMap 新增了一个指向元数据数组的指针<code>metadata</code>和用于 SIMD 查询的相关字段</p>
+</blockquote>
+<h4><span id="2-yuan-shu-ju-kong-zhi-jie-gou">2.元数据控制结构</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 控制字节的语义（每个字节对应一个槽位）</span><br><span class="hljs-keyword">const</span> (<br>    ctrlEmpty   = <span class="hljs-number">0x00</span> <span class="hljs-comment">// 空槽位</span><br>    ctrlDeleted = <span class="hljs-number">0xFE</span> <span class="hljs-comment">// 已删除槽位</span><br>    ctrlSentinel = <span class="hljs-number">0xFF</span> <span class="hljs-comment">// 哨兵值（用于SIMD）</span><br>    <span class="hljs-comment">// 其他值: 哈希值的高7位</span><br>)<br><br><span class="hljs-comment">// 元数据组（缓存行对齐）</span><br><span class="hljs-keyword">type</span> metadataGroup <span class="hljs-keyword">struct</span> &#123;<br>    ctrl [<span class="hljs-number">16</span>]<span class="hljs-type">uint8</span>  <span class="hljs-comment">// 16字节的控制信息（SIMD友好）</span><br>&#125;<br></code></pre></td></tr></table></figure>
 
-<p>在这种情况下， <code>originArr</code>、 <code>slice1</code>、 <code>slice2</code> 共享同一个底层数组。修改其中一个切片的元素，会影响到所有共享该底层数组的其他切片和数组。</p>
-<p>这带来了以下几点优势：</p>
-<ul>
-<li><strong>避免大块数组复制</strong>：当切片作为函数参数传递给函数时，实际传递的是上面的结构体实例，因此无论切片描述的底层数组有多大，切片作为参数传递带来的性能损耗都是极小且恒定的。</li>
-<li><strong>快速创建数据视图</strong>：可以对切片进行 <code>reslice</code> ，就像上面的 slice2一样。例如，在处理一个收到的网络报文时，可以迅速切出协议头、报文体等部分进行处理，而不需要复制数据。</li>
-</ul>
-<h3><span id="3-ling-huo-de-nei-cun-bu-ju-kong-zhi">3.灵活的内存布局控制</span></h3><p>可以通过 <code>make</code> 函数精确的控制 Slice 的初始长度和容量</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 创建一个长度为 3，容量为 5 的整型切片</span><br>s := <span class="hljs-built_in">make</span>([]<span class="hljs-type">int</span>, <span class="hljs-number">3</span>, <span class="hljs-number">5</span>)  <span class="hljs-comment">// s =&gt; [0, 0, 0], len=3, cap=5</span><br></code></pre></td></tr></table></figure>
+<h4><span id="3-tong-jie-gou-bmap">3.桶结构-bmap</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> bmap <span class="hljs-keyword">struct</span> &#123;<br>    <span class="hljs-comment">// 元数据部分（单独存储以提高缓存效率）</span><br>    tophash [bucketCnt]<span class="hljs-type">uint8</span> <span class="hljs-comment">// 旧版兼容字段</span><br>    <br>    <span class="hljs-comment">// 键值对数据（实际存储时可能分开）</span><br>    keys   [bucketCnt]keytype   <span class="hljs-comment">// 键数组</span><br>    values [bucketCnt]valuetype <span class="hljs-comment">// 值数组</span><br>    <br>    <span class="hljs-comment">// 溢出桶指针</span><br>    overflow *bmap<br>&#125;<br></code></pre></td></tr></table></figure>
 
-<p>接下来，我使用一个基准测试来说明这一点：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;testing&quot;</span>  <br>  <br><span class="hljs-keyword">const</span> sliceSize = <span class="hljs-number">10000</span>  <br>  <br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">BenchmarkSliceInitWithoutCap</span><span class="hljs-params">(b *testing.B)</span></span> &#123;  <br>    <span class="hljs-keyword">for</span> n := <span class="hljs-number">0</span>; n &lt; b.N; n++ &#123;  <br>       sl := <span class="hljs-built_in">make</span>([]<span class="hljs-type">int</span>, <span class="hljs-number">0</span>)  <br>       <span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; sliceSize; i++ &#123;  <br>          sl = <span class="hljs-built_in">append</span>(sl, i)  <br>       &#125;  <br>    &#125;  <br>&#125;  <br>  <br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">BenchmarkSliceInitWithCap</span><span class="hljs-params">(b *testing.B)</span></span> &#123;  <br>    <span class="hljs-keyword">for</span> n := <span class="hljs-number">0</span>; n &lt; b.N; n++ &#123;  <br>       sl := <span class="hljs-built_in">make</span>([]<span class="hljs-type">int</span>, <span class="hljs-number">0</span>, sliceSize)  <br>       <span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; sliceSize; i++ &#123;  <br>          sl = <span class="hljs-built_in">append</span>(sl, i)  <br>       &#125;  <br>    &#125;  <br>&#125;<br></code></pre></td></tr></table></figure>
-
-<p>下面是执行结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs bash">(base) xuyuyang % go <span class="hljs-built_in">test</span> -benchmem -bench=. slice_benchmark_test.go<br>goos: darwin<br>goarch: arm64<br>cpu: Apple M3<br>BenchmarkSliceInitWithoutCap-8             <br>51662             22170 ns/op          357629 B/op         19 allocs/op<br>BenchmarkSliceInitWithCap-8               <br>210564              5757 ns/op           81920 B/op          1 allocs/op<br>PASS<br>ok      command-line-arguments  3.039s<br></code></pre></td></tr></table></figure>
-
-<ul>
-<li><p><strong><code>BenchmarkSliceInitWithoutCap-8</code></strong>:</p>
-<ul>
-<li><p>执行了 51,662 次，每次操作平均耗时 <strong>22,170 ns</strong> (约 0.022 ms)</p>
-</li>
-<li><p>每次操作分配了约 <strong>357.6 KB</strong> 的内存</p>
-</li>
-<li><p>每次操作发生了 <strong>19 次</strong> 内存分配 (allocs)</p>
-</li>
-</ul>
-</li>
-<li><p><strong><code>BenchmarkSliceInitWithCap-8</code></strong>:</p>
-<ul>
-<li><p>执行了 210,564 次，每次操作平均耗时 <strong>5,757 ns</strong> (约 0.006 ms) <strong>-&gt; 快 3.85 倍！</strong></p>
-</li>
-<li><p>每次操作分配了约 <strong>81.9 KB</strong> 的内存 <strong>-&gt; 内存减少 77%！</strong></p>
-</li>
-<li><p>每次操作发生了 <strong>1 次</strong> 内存分配 (allocs) <strong>-&gt; 分配次数减少 94%！</strong></p>
-</li>
-</ul>
-</li>
-</ul>
-<h3><span id="zhu-yi-shi-xiang">注意事项</span></h3><ul>
-<li><strong>意外的修改</strong>：多个切片可能共享同一个底层数组，因此在修改切片元素时需要注意是否会影响其他切片。若不希望对其他切片产生影响，需要使用<code>copy</code> 函数进行显示复制。</li>
-<li><strong>”内存泄露“</strong>：一个引用着很大底层数组的切片可能只使用其中的很小一部分，但切片的引用会导致这个数组无法被GC。因此可以在使用完大数组后，将需要的数据复制到一个独立的切片中进行使用。</li>
-<li><strong>扩容导致的”断链“</strong>：<code>append</code> 操作可能会导致扩容，扩容后会使用一个全新的底层数组。此时，新的切片与之前基于旧数组的切片就不再共享同一底层数组了。对它们的修改将互不影响。</li>
-</ul>
 
                 
               </div>
@@ -355,27 +299,6 @@
             <hr/>
             <div>
               <div class="post-metas my-3">
-  
-    <div class="post-meta mr-3 d-flex align-items-center">
-      <i class="iconfont icon-category"></i>
-      
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/Golang/" class="category-chain-item">Golang</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-    </div>
   
   
 </div>
@@ -386,8 +309,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>Slice</div>
-      <div>https://stackecho.blog/2025/09/16/Golang/2025-09-16-Slice/</div>
+      <div>SwissMap</div>
+      <div>https://stackecho.blog/2025/09/17/Golang/2025-09-17-SwissMap/</div>
     </div>
     <div class="license-meta">
       
@@ -399,7 +322,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2025年9月16日</div>
+          <div>2025年9月17日</div>
         </div>
       
       
@@ -431,9 +354,9 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2025/09/16/Golang/2025-09-16-Map/" title="Map">
+                      <a href="/2025/09/29/Golang/2025-09-29-sync%E5%8C%85/" title="sync包">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Map</span>
+                        <span class="hidden-mobile">sync包</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
@@ -441,8 +364,8 @@
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2025/08/09/Golang/2025-08-09-Channel/" title="Channel">
-                        <span class="hidden-mobile">Channel</span>
+                      <a href="/2025/09/16/Golang/2025-09-16-Map/" title="Map">
+                        <span class="hidden-mobile">Map</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
