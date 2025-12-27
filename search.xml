@@ -1269,6 +1269,9 @@
 <h4><span id="3-tong-jie-gou-bmap">3.桶结构-bmap</span></h4><figure class="highlight go"><table><tr><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> bmap <span class="hljs-keyword">struct</span> &#123;<br>    <span class="hljs-comment">// 元数据部分（单独存储以提高缓存效率）</span><br>    tophash [bucketCnt]<span class="hljs-type">uint8</span> <span class="hljs-comment">// 旧版兼容字段</span><br>    <br>    <span class="hljs-comment">// 键值对数据（实际存储时可能分开）</span><br>    keys   [bucketCnt]keytype   <span class="hljs-comment">// 键数组</span><br>    values [bucketCnt]valuetype <span class="hljs-comment">// 值数组</span><br>    <br>    <span class="hljs-comment">// 溢出桶指针</span><br>    overflow *bmap<br>&#125;<br></code></pre></td></tr></table></figure>
 
 ]]></content>
+      <categories>
+        <category>Golang</category>
+      </categories>
   </entry>
   <entry>
     <title>sync包</title>
@@ -1288,6 +1291,9 @@
 <p>这样会将使用过的锁的状态一同复制，可能会造成死锁等不可预期的结果。<br>因此在使用 sync 包中类型时，更应该通过<strong>闭包</strong>或<strong>传递指针</strong>的方式进行。</p>
 </blockquote>
 ]]></content>
+      <categories>
+        <category>Golang</category>
+      </categories>
   </entry>
   <entry>
     <title>[复盘]混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘</title>
@@ -1442,7 +1448,85 @@
 <p>未来的 v0.2.0，我们将致力于让它从一个“聪明的工具”进化为一个“专业的平台”。</p>
 <p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
-<p>Project Repo: [<a href="https://github.com/stack-echo/Chimera-RAG.git]">https://github.com/stack-echo/Chimera-RAG.git]</a></p>
+<p>Project Repo: [<a href="https://github.com/stack-echo/Chimera-RAG]">https://github.com/stack-echo/Chimera-RAG]</a></p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>项目复盘</category>
+        <category>Chimera-RAG</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>[复盘]混合架构：从零构建Chimera-RAG（v0.2.0）开发复盘</title>
+    <url>/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%5B%E5%A4%8D%E7%9B%98%5D%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</url>
+    <content><![CDATA[<h2><span id="qian-yan-cong-neng-pao-dao-hao-yong">前言：从“能跑”到“好用”</span></h2><p>在 v0.1.0 版本中，Chimera-RAG 已经是一个功能完备的原型：我们使用grpc做通信，部署了 Redis、Qdrant、minio，攻克了 SSE 流式传输的跨域问题，做了一个简单的前端页面验证系统。系统跑通了，逻辑也是自洽的。</p>
+<p>但作为一个追求长期演进的系统，v0.1.0 依然面临着“成长的烦恼”：</p>
+<ul>
+<li><p><strong>数据孤岛</strong>：虽然有 Redis，但缺乏关系型数据库，用户数据无法持久化，文件与用户的绑定关系薄弱。</p>
+</li>
+<li><p><strong>同步瓶颈</strong>：Redis 虽然在场，但尚未发挥其作为“异步消息队列”的全部潜力，大文件处理依然容易阻塞主线程。</p>
+</li>
+<li><p><strong>代码熵增</strong>：Python 端的逻辑随着功能增加开始堆叠，急需一场架构层面的“断舍离”。</p>
+</li>
+</ul>
+<p>在 v0.2.0 我们对系统进行了大量的修改。我们不是在堆砌新功能，而是在<strong>深化基础设施的应用，并重塑代码的骨架。</strong></p>
+<h2><span id="yi-ji-chu-she-shi-de-shen-hua-ying-yong">一、 基础设施的深化应用</span></h2><h3><span id="1-redis-cong-huan-cun-dao-shi-jian-qu-dong">1. Redis：从“缓存”到“事件驱动”</span></h3><p>在 v0.1.0 中，Redis 可能更多充当缓存或简单存储。在 v0.2.0 中，我们将其升级为 <strong>ETL 流程的神经中枢</strong>。</p>
+<ul>
+<li><p><strong>变革</strong>：构建了标准的 <strong>Producer-Consumer（生产者-消费者）</strong> 模型。</p>
+</li>
+<li><p><strong>效果</strong>：Go 后端（生产者）只负责将 <code>Upload</code> 事件推入 <code>task:parse_pdf</code> 队列，耗时仅毫秒级；后台 Worker（消费者）异步拉取任务。这种解耦让系统吞吐量有了质的飞跃。</p>
+</li>
+</ul>
+<h3><span id="2-yin-ru-postgresql-bu-quan-shu-ju-pin-tu">2. 引入 PostgreSQL：补全数据拼图</span></h3><p>为了支撑多用户体系，我们引入了 PostgreSQL。</p>
+<ul>
+<li><strong>价值</strong>：利用 GORM 定义了 <code>User</code>、<code>Document</code>、<code>KnowledgeBase</code> 模型。这标志着系统从“临时会话”走向了“持久化资产管理”。</li>
+</ul>
+<h2><span id="er-hou-duan-jia-gou-de-gui-fan-hua-go">二、 后端架构的规范化 (Go)</span></h2><p>v0.1.0 虽然已有 Middleware 思想，但 v0.2.0 将其<strong>体系化</strong>了。</p>
+<h3><span id="1-jian-quan-ti-xi-de-luo-di">1. 鉴权体系的落地</span></h3><ul>
+<li><p><strong>JWT + DB</strong>：我们将原有的鉴权机制升级为基于数据库的 JWT 验证。</p>
+</li>
+<li><p><strong>中间件标准化</strong>：重写了 Gin 中间件，使其不仅负责拦截，还负责<strong>上下文注入</strong>（<code>c.Set(&quot;userID&quot;, ...)</code>）。这让后续的 Controller 层完全不需要关心“解析 Token”这种脏活，专注于业务。</p>
+</li>
+</ul>
+<h3><span id="2-clean-architecture-zheng-ji-jia-gou">2. Clean Architecture (整洁架构)</span></h3><p>我们对代码进行了分层重构：</p>
+<ul>
+<li><p><strong>Data 层</strong>：收敛了所有的 DB、Redis、MinIO 操作。</p>
+</li>
+<li><p><strong>Service 层</strong>：只关注业务编排。</p>
+</li>
+<li><p><strong>Handler 层</strong>：只关注 HTTP 协议解析。 这种分层让单元测试和后续维护变得异常轻松。</p>
+</li>
+</ul>
+<h2><span id="san-ai-nei-he-de-mo-kuai-hua-python">三、 AI 内核的模块化 (Python)</span></h2><p>这是 v0.2.0 变动最大的部分。为了迎接未来的多模态和 Agent 架构，我们废弃了单脚本模式。</p>
+<ul>
+<li><p><strong>Core 层</strong>：封装 LLM、Embedding、Splitter 等原子能力。</p>
+</li>
+<li><p><strong>Tools 层</strong>：将 PDF 解析（PyMuPDF）独立为工具。这为 v0.3.0 替换为 Docling 埋下了伏笔。</p>
+</li>
+<li><p><strong>Service 层</strong>：纯粹的 gRPC 胶水层。</p>
+</li>
+</ul>
+<p>现在的 Python 服务，已经做好了被未来 Agent 调用的准备。</p>
+<h2><span id="si-qian-duan-gong-cheng-hua-vue-3">四、 前端工程化 (Vue 3)</span></h2><p>我们完善了前端的“最后一块拼图”：</p>
+<ul>
+<li><p>**状态管理 (Pinia)**：持久化存储用户状态，与 v0.1.0 已有的 SSE 鉴权机制完美对接。</p>
+</li>
+<li><p><strong>交互闭环</strong>：新增登录&#x2F;注册页，配合 Axios 拦截器，实现了用户无感知的 Token 刷新与携带。</p>
+</li>
+</ul>
+<h2><span id="wu-xia-yi-bu-v0-3-0-yu-gao">五、 下一步：v0.3.0 预告</span></h2><p>随着架构地基的夯实，v0.2.0 已经是一个健壮的分布式系统。接下来，我们要把精力集中在 <strong>RAG 的核心效果</strong>上。</p>
+<p><strong>v0.3.0 目标：AI 的觉醒</strong></p>
+<ul>
+<li><p><strong>Docling 接入</strong>：用 AI 视觉技术替代传统的文本提取，读懂表格和布局。</p>
+</li>
+<li><p><strong>语义切分</strong>：基于 Markdown 标题的智能分块，不再暴力截断上下文。</p>
+</li>
+<li><p><strong>知识图谱</strong>：探索 NebulaGraph，向 GraphRAG 进发。</p>
+</li>
+</ul>
+<p>代码已开源，欢迎 Star 与 PR！</p>
+<blockquote>
+<p>Project Repo: [<a href="https://github.com/stack-echo/Chimera-RAG]">https://github.com/stack-echo/Chimera-RAG]</a></p>
 </blockquote>
 ]]></content>
   </entry>
