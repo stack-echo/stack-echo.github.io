@@ -234,15 +234,15 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%5B%E5%A4%8D%E7%9B%98%5D%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
-          [复盘]混合架构：从零构建Chimera-RAG（v0.2.0）开发复盘
+        <a href="/2025/12/28/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-28-%E7%AD%91%E7%89%A2%E9%98%B2%E7%BA%BF%EF%BC%9AChimera-RAG%EF%BC%88v0.4.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
+          筑牢防线：Chimera-RAG（v0.4.0）开发复盘
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%5B%E5%A4%8D%E7%9B%98%5D%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2025/12/28/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-28-%E7%AD%91%E7%89%A2%E9%98%B2%E7%BA%BF%EF%BC%9AChimera-RAG%EF%BC%88v0.4.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
         <div>
-          前言：从“能跑”到“好用”在 v0.1.0 版本中，Chimera-RAG 已经是一个功能完备的原型：我们使用grpc做通信，部署了 Redis、Qdrant、minio，攻克了 SSE 流式传输的跨域问题，做了一个简单的前端页面验证系统。系统跑通了，逻辑也是自洽的。 但作为一个追求长期演进的系统，v0.1.0 依然面临着“成长的烦恼”：  数据孤岛：虽然有 Redis，但缺乏关系型数据库，用户数
+          引言：当 Demo 遇上“现实引力”在 v0.3.0 版本中，我引入 Docling 解决了 RAG 的“视力问题”。但当我想把这个系统真正部署给团队使用时，原本“能跑就行”的后端架构瞬间崩塌了。 三个致命问题摆在面前：  裸奔的数据：没有组织隔离，任何人都能检索到所有向量数据。  不可测的接口：所有对话接口强制 SSE 流式输出，导致自动化测试脚本无法断言，每次改代码都要人工点点点。  脆弱的逻
         </div>
       </a>
 
@@ -250,7 +250,40 @@
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>
-            <time datetime="2025-12-27 14:47" pubdate>
+            <time datetime="2025-12-28 22:46" pubdate>
+              2025-12-28
+            </time>
+          </div>
+        
+        
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E6%8B%92%E7%BB%9D%E5%B9%BB%E8%A7%89%EF%BC%9AChimera-RAG%EF%BC%88v0.3.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
+          拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E6%8B%92%E7%BB%9D%E5%B9%BB%E8%A7%89%EF%BC%9AChimera-RAG%EF%BC%88v0.3.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
+        <div>
+          引言：RAG 的信任危机在 v0.2.0 版本中，我搭建了一套标准的 RAG 架构（Go+Python+MinIO+Qdrant）。它跑通了，但它像个“瞎子”。 它使用 PyMuPDF 机械地提取文本，把表格读成乱码，把标题和正文混为一谈。最致命的是，当它回答问题时，用户无法验证真伪——它说“见第4页”，但我根本不知道第4页在哪里。 于是，v0.3.0  应运而生。 一、 核心突破：给 AI 装上
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2025-12-27 21:21" pubdate>
               2025-12-27
             </time>
           </div>
@@ -267,13 +300,74 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-26-%5B%E5%A4%8D%E7%9B%98%5D%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
-          [复盘]混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘
+        <a href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E5%A4%AF%E5%AE%9E%E5%9C%B0%E5%9F%BA%EF%BC%9AChimera-RAG%20%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
+          夯实地基：Chimera-RAG（v0.2.0）开发复盘
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-26-%5B%E5%A4%8D%E7%9B%98%5D%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E5%A4%AF%E5%AE%9E%E5%9C%B0%E5%9F%BA%EF%BC%9AChimera-RAG%20%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
+        <div>
+          前言：从“能跑”到“好用”在 v0.1.0 版本中，Chimera-RAG 已经是一个功能完备的原型：我们使用grpc做通信，部署了 Redis、Qdrant、minio，攻克了 SSE 流式传输的跨域问题，做了一个简单的前端页面验证系统。系统跑通了，逻辑也是自洽的。 但作为一个追求长期演进的系统，v0.1.0 依然面临着“成长的烦恼”：  数据孤岛：虽然有 Redis，但缺乏关系型数据库，用户数
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2025-12-27 14:47" pubdate>
+              2025-12-27
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/" class="category-chain-item">项目复盘</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/" class="category-chain-item">Chimera-RAG</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-26-%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
+          混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-26-%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" target="_self">
         <div>
           摘要：在 EHS 安全合规领域，如何让 AI 真正“读懂”晦涩的法规文档？本文记录了我基于 Go (网关) + Python (大脑) 混合架构，结合 Qdrant 与 DeepSeek，构建 RAG 系统的全过程。从 gRPC 的 4MB 限制到上下文窗口的调优，复盘 v0.1.0 版本的关键技术决策与实战踩坑。  1. 缘起：当 Go 的快遇上 Python 的智在构建一个垂直领域的 RAG
         </div>
@@ -632,121 +726,6 @@
         
   <a href="/categories/Python/" class="category-chain-item">Python</a>
   
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h2 class="index-header">
-        
-        <a href="/2025/08/01/Python/2025-08-01-pydantic-%E6%95%B0%E6%8D%AE%E9%AA%8C%E8%AF%81%E5%92%8C%E8%A7%A3%E6%9E%90/" target="_self">
-          pydantic-数据验证和解析
-        </a>
-      </h2>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2025/08/01/Python/2025-08-01-pydantic-%E6%95%B0%E6%8D%AE%E9%AA%8C%E8%AF%81%E5%92%8C%E8%A7%A3%E6%9E%90/" target="_self">
-        <div>
-          
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2025-08-01 18:16" pubdate>
-              2025-08-01
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/Python/" class="category-chain-item">Python</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h2 class="index-header">
-        
-        <a href="/2025/08/01/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/%E9%A1%B9%E7%9B%AE/2025-08-01-%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E7%AE%80%E6%98%93%E7%9A%84demo%E9%AA%8C%E8%AF%81mmkg%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88%E7%9A%84%E5%8F%AF%E8%A1%8C%E6%80%A7/" target="_self">
-          构建一个简易的demo验证mmkg设计方案的可行性
-        </a>
-      </h2>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2025/08/01/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/%E9%A1%B9%E7%9B%AE/2025-08-01-%E6%9E%84%E5%BB%BA%E4%B8%80%E4%B8%AA%E7%AE%80%E6%98%93%E7%9A%84demo%E9%AA%8C%E8%AF%81mmkg%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88%E7%9A%84%E5%8F%AF%E8%A1%8C%E6%80%A7/" target="_self">
-        <div>
-          为验证多模态知识图谱本体设计是否合理，数据链路是否通畅，博主决定设计一个简易的demo进行验证，并以此指导后续完整图谱的设计。  下面先介绍chemical_mmkg_demo-v1的组织结构 1234567891011121314151617181920212223chemical_mmkg_demo/├── core/                      # 核心领域模型│   ├──
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2025-08-01 16:50" pubdate>
-              2025-08-01
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/" class="category-chain-item">知识图谱</a>
-  
-  
-    <span>></span>
-    
-  <a href="/categories/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/%E9%A1%B9%E7%9B%AE/" class="category-chain-item">项目</a>
-  
-  
-
   
 
       </span>

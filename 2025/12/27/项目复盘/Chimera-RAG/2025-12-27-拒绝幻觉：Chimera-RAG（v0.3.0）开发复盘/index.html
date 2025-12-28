@@ -19,21 +19,21 @@
   <meta name="author" content="Xu Yuyang">
   <meta name="keywords" content="">
   
-    <meta name="description" content="Go 标准库的sync包提供了针对传统基于共享内存并发模型的基本同步原语，包括互斥锁（sync.Mutex）、读写锁（sync.RWMutex）、条件变量（sync.Cond）等工具。  sync.Mutex 的定义：1234type Mutex struct &#123;	state int32	sema  uint32&#125;   state：表示当前互斥锁的状态 sema：用于控制锁状">
+    <meta name="description" content="引言：RAG 的信任危机在 v0.2.0 版本中，我搭建了一套标准的 RAG 架构（Go+Python+MinIO+Qdrant）。它跑通了，但它像个“瞎子”。 它使用 PyMuPDF 机械地提取文本，把表格读成乱码，把标题和正文混为一谈。最致命的是，当它回答问题时，用户无法验证真伪——它说“见第4页”，但我根本不知道第4页在哪里。 于是，v0.3.0  应运而生。 一、 核心突破：给 AI 装上">
 <meta property="og:type" content="article">
-<meta property="og:title" content="sync包">
-<meta property="og:url" content="https://stackecho.blog/2025/09/29/Golang/2025-09-29-sync%E5%8C%85/index.html">
+<meta property="og:title" content="拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘">
+<meta property="og:url" content="https://stackecho.blog/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E6%8B%92%E7%BB%9D%E5%B9%BB%E8%A7%89%EF%BC%9AChimera-RAG%EF%BC%88v0.3.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/index.html">
 <meta property="og:site_name" content="StackEcho">
-<meta property="og:description" content="Go 标准库的sync包提供了针对传统基于共享内存并发模型的基本同步原语，包括互斥锁（sync.Mutex）、读写锁（sync.RWMutex）、条件变量（sync.Cond）等工具。  sync.Mutex 的定义：1234type Mutex struct &#123;	state int32	sema  uint32&#125;   state：表示当前互斥锁的状态 sema：用于控制锁状">
+<meta property="og:description" content="引言：RAG 的信任危机在 v0.2.0 版本中，我搭建了一套标准的 RAG 架构（Go+Python+MinIO+Qdrant）。它跑通了，但它像个“瞎子”。 它使用 PyMuPDF 机械地提取文本，把表格读成乱码，把标题和正文混为一谈。最致命的是，当它回答问题时，用户无法验证真伪——它说“见第4页”，但我根本不知道第4页在哪里。 于是，v0.3.0  应运而生。 一、 核心突破：给 AI 装上">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2025-09-29T12:08:40.000Z">
-<meta property="article:modified_time" content="2025-12-27T06:54:59.380Z">
+<meta property="article:published_time" content="2025-12-27T13:21:35.000Z">
+<meta property="article:modified_time" content="2025-12-27T13:23:19.412Z">
 <meta property="article:author" content="Xu Yuyang">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>sync包 - StackEcho</title>
+  <title>拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘 - StackEcho</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -204,7 +204,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="sync包"></span>
+            <span id="subtitle" data-typed-text="拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘"></span>
           
         </div>
 
@@ -215,8 +215,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2025-09-29 20:08" pubdate>
-          2025年9月29日 晚上
+        <time datetime="2025-12-27 21:21" pubdate>
+          2025年12月27日 晚上
         </time>
       </span>
     
@@ -227,7 +227,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          189 字
+          617 字
         
       </span>
     
@@ -238,7 +238,7 @@
         
         
         
-          2 分钟
+          6 分钟
         
       </span>
     
@@ -275,24 +275,58 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">sync包</h1>
+            <h1 id="seo-header">拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘</h1>
             
             
               <div class="markdown-body">
                 
-                <blockquote>
-<p>Go 标准库的sync包提供了针对传统基于共享内存并发模型的基本同步原语，包括互斥锁（sync.Mutex）、读写锁（sync.RWMutex）、条件变量（sync.Cond）等工具。</p>
-</blockquote>
-<h3><span id="sync-mutex-de-ding-yi">sync.Mutex 的定义：</span></h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> Mutex <span class="hljs-keyword">struct</span> &#123;<br>	state <span class="hljs-type">int32</span><br>	sema  <span class="hljs-type">uint32</span><br>&#125;<br></code></pre></td></tr></table></figure>
-
+                <h4><span id="yin-yan-rag-de-xin-ren-wei-ji">引言：RAG 的信任危机</span></h4><p>在 v0.2.0 版本中，我搭建了一套标准的 RAG 架构（Go+Python+MinIO+Qdrant）。它跑通了，但它像个“瞎子”。 它使用 PyMuPDF 机械地提取文本，把表格读成乱码，把标题和正文混为一谈。最致命的是，当它回答问题时，用户无法验证真伪——它说“见第4页”，但我根本不知道第4页在哪里。 于是，<strong>v0.3.0</strong>  应运而生。</p>
+<h4><span id="yi-he-xin-tu-po-gei-ai-zhuang-shang-yan-jing-docling-integration">一、 核心突破：给 AI 装上“眼睛” (Docling Integration)</span></h4><p>我废弃了传统的 <code>fitz</code> 方案，引入了 IBM 开源的 <strong>Docling</strong>。</p>
 <ul>
-<li>state：表示当前互斥锁的状态</li>
-<li>sema：用于控制锁状态的信号量</li>
+<li><p><strong>多模态解析</strong>：它不仅仅是识字，它是基于视觉模型在“看”文档。它能精准识别表格结构、段落层级和页面布局。</p>
+</li>
+<li><p>**语义切分 (HybridChunking)**：</p>
+<ul>
+<li><p><em>Old Way</em>: 每 500 字切一刀，经常把一句话切断。</p>
+</li>
+<li><p><em>New Way</em>: 基于 Docling 的 <code>HybridChunker</code>，它尊重文档结构，按章节、段落切分，并且完整保留了元数据（Metadata）。</p>
+</li>
 </ul>
-<p>由 Mutex 的定义，下面引出在使用 sync 包时需要注意的点：</p>
-<p><strong>不要在首次使用 sync 包中定义的结构类型后对其进行复制操作</strong></p>
+</li>
+</ul>
+<h4><span id="er-ti-yan-bi-huan-xin-ren-yuan-yu-ke-su-yuan">二、 体验闭环：信任源于“可溯源”</span></h4><p>RAG 如果不能跳转原文，就是耍流氓。在 v0.3.0 中，我打通了“数据-后端-前端”的最后一公里：</p>
+<ol>
+<li><p><strong>数据层</strong>：Python 解析时，将 <code>page_number</code> 烙印在每一个 Vector Chunk 中。</p>
+</li>
+<li><p><strong>交互层</strong>：</p>
+<ul>
+<li><p><strong>Prompt Engineering</strong>：强制 LLM 使用 <code>&lt;&lt;filename|page&gt;&gt;</code> 格式引用。</p>
+</li>
+<li><p><strong>Vue 渲染</strong>：前端正则解析引用，将其渲染为可点击的蓝色锚点。</p>
+</li>
+</ul>
+</li>
+<li><p><strong>展示层</strong>：</p>
+<ul>
+<li><p>Go 后端实现了 MinIO 文件流的 HTTP 代理。</p>
+</li>
+<li><p>前端引入 <code>vue-pdf-embed</code>，实现了“点击引用 -&gt; 右侧 PDF 自动弹出并跳转”的丝滑体验。</p>
+</li>
+</ul>
+</li>
+</ol>
+<h4><span id="san-cai-keng-yu-fan-si">三、 踩坑与反思</span></h4><ol>
+<li><p><strong>环境地狱</strong>：Docling 的依赖极其复杂（PyTorch 等），Docker 镜像体积激增，构建时间变长。这是智能化的代价。</p>
+</li>
+<li><p><strong>上下文拼接</strong>：最开始 LLM 总是无法正确引用，后来发现是因为我在 Go 端组装 Prompt 时，只拼了内容，忘了拼 <code>Page</code> 和 <code>FileName</code>。<strong>AI 只能利用你喂给它的信息</strong>，这一点至关重要。</p>
+</li>
+<li><p><strong>PDF 坐标系</strong>：前端 PDF 跳转一度失效，最后发现是 <code>vue-pdf-embed</code> 的页码属性绑定问题。</p>
+</li>
+</ol>
+<h4><span id="si-xia-yi-bu-mai-xiang-qi-ye-ji-agent-ping-tai">四、 下一步：迈向企业级 Agent 平台</span></h4><p>现在的 Chimera-RAG 已经是一个极其好用的单兵武器。但我的野心不止于此。 v0.4.0 将引入 <strong>组织架构 (Organization)</strong> 和 **多智能体 (Multi-Agent)**，让它进化为支持团队协作、具备链路追踪能力的 AgentOps 平台。</p>
+<p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
-<p>这样会将使用过的锁的状态一同复制，可能会造成死锁等不可预期的结果。<br>因此在使用 sync 包中类型时，更应该通过<strong>闭包</strong>或<strong>传递指针</strong>的方式进行。</p>
+<p>Project Repo: [<a target="_blank" rel="noopener" href="https://github.com/stack-echo/Chimera-RAG]">https://github.com/stack-echo/Chimera-RAG]</a></p>
 </blockquote>
 
                 
@@ -301,27 +335,6 @@
             <hr/>
             <div>
               <div class="post-metas my-3">
-  
-    <div class="post-meta mr-3 d-flex align-items-center">
-      <i class="iconfont icon-category"></i>
-      
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/Golang/" class="category-chain-item">Golang</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-    </div>
   
   
 </div>
@@ -332,8 +345,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>sync包</div>
-      <div>https://stackecho.blog/2025/09/29/Golang/2025-09-29-sync包/</div>
+      <div>拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘</div>
+      <div>https://stackecho.blog/2025/12/27/项目复盘/Chimera-RAG/2025-12-27-拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘/</div>
     </div>
     <div class="license-meta">
       
@@ -345,7 +358,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2025年9月29日</div>
+          <div>2025年12月27日</div>
         </div>
       
       
@@ -377,9 +390,9 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-26-%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘">
+                      <a href="/2025/12/28/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-28-%E7%AD%91%E7%89%A2%E9%98%B2%E7%BA%BF%EF%BC%9AChimera-RAG%EF%BC%88v0.4.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="筑牢防线：Chimera-RAG（v0.4.0）开发复盘">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘</span>
+                        <span class="hidden-mobile">筑牢防线：Chimera-RAG（v0.4.0）开发复盘</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
@@ -387,8 +400,8 @@
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2025/09/17/Golang/2025-09-17-SwissMap/" title="SwissMap">
-                        <span class="hidden-mobile">SwissMap</span>
+                      <a href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E5%A4%AF%E5%AE%9E%E5%9C%B0%E5%9F%BA%EF%BC%9AChimera-RAG%20%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="夯实地基：Chimera-RAG（v0.2.0）开发复盘">
+                        <span class="hidden-mobile">夯实地基：Chimera-RAG（v0.2.0）开发复盘</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>

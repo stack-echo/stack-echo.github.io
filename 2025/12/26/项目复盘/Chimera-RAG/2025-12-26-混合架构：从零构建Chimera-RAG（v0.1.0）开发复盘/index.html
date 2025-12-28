@@ -19,21 +19,23 @@
   <meta name="author" content="Xu Yuyang">
   <meta name="keywords" content="">
   
-    <meta name="description" content="前言：从“能跑”到“好用”在 v0.1.0 版本中，Chimera-RAG 已经是一个功能完备的原型：我们使用grpc做通信，部署了 Redis、Qdrant、minio，攻克了 SSE 流式传输的跨域问题，做了一个简单的前端页面验证系统。系统跑通了，逻辑也是自洽的。 但作为一个追求长期演进的系统，v0.1.0 依然面临着“成长的烦恼”：  数据孤岛：虽然有 Redis，但缺乏关系型数据库，用户数">
+    <meta name="description" content="摘要：在 EHS 安全合规领域，如何让 AI 真正“读懂”晦涩的法规文档？本文记录了我基于 Go (网关) + Python (大脑) 混合架构，结合 Qdrant 与 DeepSeek，构建 RAG 系统的全过程。从 gRPC 的 4MB 限制到上下文窗口的调优，复盘 v0.1.0 版本的关键技术决策与实战踩坑。  1. 缘起：当 Go 的快遇上 Python 的智在构建一个垂直领域的 RAG">
 <meta property="og:type" content="article">
-<meta property="og:title" content="[复盘]混合架构：从零构建Chimera-RAG（v0.2.0）开发复盘">
-<meta property="og:url" content="https://stackecho.blog/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-[%E5%A4%8D%E7%9B%98]%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/index.html">
+<meta property="og:title" content="混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘">
+<meta property="og:url" content="https://stackecho.blog/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-26-%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/index.html">
 <meta property="og:site_name" content="StackEcho">
-<meta property="og:description" content="前言：从“能跑”到“好用”在 v0.1.0 版本中，Chimera-RAG 已经是一个功能完备的原型：我们使用grpc做通信，部署了 Redis、Qdrant、minio，攻克了 SSE 流式传输的跨域问题，做了一个简单的前端页面验证系统。系统跑通了，逻辑也是自洽的。 但作为一个追求长期演进的系统，v0.1.0 依然面临着“成长的烦恼”：  数据孤岛：虽然有 Redis，但缺乏关系型数据库，用户数">
+<meta property="og:description" content="摘要：在 EHS 安全合规领域，如何让 AI 真正“读懂”晦涩的法规文档？本文记录了我基于 Go (网关) + Python (大脑) 混合架构，结合 Qdrant 与 DeepSeek，构建 RAG 系统的全过程。从 gRPC 的 4MB 限制到上下文窗口的调优，复盘 v0.1.0 版本的关键技术决策与实战踩坑。  1. 缘起：当 Go 的快遇上 Python 的智在构建一个垂直领域的 RAG">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2025-12-27T06:47:12.000Z">
-<meta property="article:modified_time" content="2025-12-27T06:52:55.809Z">
+<meta property="og:image" content="https://oss-pai-ou3opkiglu3o9cspyq-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/blog/Chimera-%20RAG%20v0.1.0.png">
+<meta property="article:published_time" content="2025-12-26T13:19:58.000Z">
+<meta property="article:modified_time" content="2025-12-27T13:20:38.861Z">
 <meta property="article:author" content="Xu Yuyang">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://oss-pai-ou3opkiglu3o9cspyq-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/blog/Chimera-%20RAG%20v0.1.0.png">
   
   
   
-  <title>[复盘]混合架构：从零构建Chimera-RAG（v0.2.0）开发复盘 - StackEcho</title>
+  <title>混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘 - StackEcho</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -204,7 +206,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="[复盘]混合架构：从零构建Chimera-RAG（v0.2.0）开发复盘"></span>
+            <span id="subtitle" data-typed-text="混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘"></span>
           
         </div>
 
@@ -215,8 +217,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2025-12-27 14:47" pubdate>
-          2025年12月27日 下午
+        <time datetime="2025-12-26 21:19" pubdate>
+          2025年12月26日 晚上
         </time>
       </span>
     
@@ -227,7 +229,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          979 字
+          1.8k 字
         
       </span>
     
@@ -238,7 +240,7 @@
         
         
         
-          9 分钟
+          16 分钟
         
       </span>
     
@@ -275,76 +277,159 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">[复盘]混合架构：从零构建Chimera-RAG（v0.2.0）开发复盘</h1>
+            <h1 id="seo-header">混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘</h1>
             
             
               <div class="markdown-body">
                 
-                <h2><span id="qian-yan-cong-neng-pao-dao-hao-yong">前言：从“能跑”到“好用”</span></h2><p>在 v0.1.0 版本中，Chimera-RAG 已经是一个功能完备的原型：我们使用grpc做通信，部署了 Redis、Qdrant、minio，攻克了 SSE 流式传输的跨域问题，做了一个简单的前端页面验证系统。系统跑通了，逻辑也是自洽的。</p>
-<p>但作为一个追求长期演进的系统，v0.1.0 依然面临着“成长的烦恼”：</p>
+                <blockquote>
+<p><strong>摘要</strong>：在 EHS 安全合规领域，如何让 AI 真正“读懂”晦涩的法规文档？本文记录了我基于 <strong>Go (网关) + Python (大脑)</strong> 混合架构，结合 <strong>Qdrant</strong> 与 <strong>DeepSeek</strong>，构建 RAG 系统的全过程。从 gRPC 的 4MB 限制到上下文窗口的调优，复盘 v0.1.0 版本的关键技术决策与实战踩坑。</p>
+</blockquote>
+<h2><span id="1-yuan-qi-dang-go-de-kuai-yu-shang-python-de-zhi">1. 缘起：当 Go 的快遇上 Python 的智</span></h2><p>在构建一个垂直领域的 RAG (检索增强生成) 系统时，技术选型往往面临两难：</p>
 <ul>
-<li><p><strong>数据孤岛</strong>：虽然有 Redis，但缺乏关系型数据库，用户数据无法持久化，文件与用户的绑定关系薄弱。</p>
+<li><p><strong>全 Python 栈</strong>（如 LangChain 生态）：AI 组件开箱即用，但在处理高并发 HTTP 请求、大文件 I&#x2F;O 吞吐时，性能与资源占用往往成为瓶颈。</p>
 </li>
-<li><p><strong>同步瓶颈</strong>：Redis 虽然在场，但尚未发挥其作为“异步消息队列”的全部潜力，大文件处理依然容易阻塞主线程。</p>
-</li>
-<li><p><strong>代码熵增</strong>：Python 端的逻辑随着功能增加开始堆叠，急需一场架构层面的“断舍离”。</p>
+<li><p><strong>全 Go 栈</strong>：拥有极致的并发性能和极低的部署成本，但缺乏成熟的 PDF 深度解析、Agent 编排等 AI 生态。</p>
 </li>
 </ul>
-<p>在 v0.2.0 我们对系统进行了大量的修改。我们不是在堆砌新功能，而是在<strong>深化基础设施的应用，并重塑代码的骨架。</strong></p>
-<h2><span id="yi-ji-chu-she-shi-de-shen-hua-ying-yong">一、 基础设施的深化应用</span></h2><h3><span id="1-redis-cong-huan-cun-dao-shi-jian-qu-dong">1. Redis：从“缓存”到“事件驱动”</span></h3><p>在 v0.1.0 中，Redis 可能更多充当缓存或简单存储。在 v0.2.0 中，我们将其升级为 <strong>ETL 流程的神经中枢</strong>。</p>
+<p>为了兼顾性能与生态，我决定采用<strong>异构混合架构</strong>来构建 <strong>Chimera-RAG</strong>（奇美拉）。 <strong>Chimera</strong> 寓意着集各家所长的混合体——利用 <strong>Go</strong> 处理高并发网关与任务调度，利用 <strong>Python</strong> 处理复杂的文档解析与推理，两者通过 <strong>gRPC</strong> 紧密协作，取长补短。</p>
+<hr>
+<h2><span id="2-jia-gou-shen-du-jie-xi-v0-1-0">2. 架构深度解析 (v0.1.0)</span></h2><p>Chimera-RAG 不是一个单体应用，而是一个典型的微服务架构。我们将系统划分为四个核心层级，每一层各司其职，互不干扰。</p>
+<p><img src="https://oss-pai-ou3opkiglu3o9cspyq-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/blog/Chimera-%20RAG%20v0.1.0.png" srcset="/img/loading.gif" lazyload alt="Chimera- RAG v0.1.0.png"></p>
+<h4><span id="2-1-jie-ru-ceng-gateway-layer-go-de-zhu-chang">2.1 接入层 (Gateway Layer) - Go 的主场</span></h4><ul>
+<li><p><strong>技术栈</strong>: Go (Gin) + SSE (Server-Sent Events)</p>
+</li>
+<li><p><strong>职责</strong>:</p>
 <ul>
-<li><p><strong>变革</strong>：构建了标准的 <strong>Producer-Consumer（生产者-消费者）</strong> 模型。</p>
+<li><p>作为系统的“守门员”，处理所有 HTTP 请求、鉴权与流控。</p>
 </li>
-<li><p><strong>效果</strong>：Go 后端（生产者）只负责将 <code>Upload</code> 事件推入 <code>task:parse_pdf</code> 队列，耗时仅毫秒级；后台 Worker（消费者）异步拉取任务。这种解耦让系统吞吐量有了质的飞跃。</p>
+<li><p><strong>零拷贝上传</strong>: 接收前端的大文件流，直接Pipe到 MinIO 对象存储，最小化内存占用。</p>
+</li>
+<li><p><strong>长连接管理</strong>: 维持与前端的 SSE 连接，像“打字机”一样实时推送 AI 的思考过程与回答。</p>
 </li>
 </ul>
-<h3><span id="2-yin-ru-postgresql-bu-quan-shu-ju-pin-tu">2. 引入 PostgreSQL：补全数据拼图</span></h3><p>为了支撑多用户体系，我们引入了 PostgreSQL。</p>
+</li>
+<li><p><strong>设计思考</strong>: 这一层选 Go 是无比正确的。Goroutine 极低的切换成本，使其在处理海量并发连接和 I&#x2F;O 密集型任务时，性能远超 Python 的 asyncio 或线程池方案。之后有时间会考虑做个benchmark进行精细对比。</p>
+</li>
+</ul>
+<h4><span id="2-2-ren-wu-diao-du-ceng-scheduling-layer-yi-bu-jie-ou">2.2 任务调度层 (Scheduling Layer) - 异步解耦</span></h4><ul>
+<li><p><strong>技术栈</strong>: Redis (List&#x2F;PubSub) + Go Worker Pool</p>
+</li>
+<li><p><strong>职责</strong>:</p>
 <ul>
-<li><strong>价值</strong>：利用 GORM 定义了 <code>User</code>、<code>Document</code>、<code>KnowledgeBase</code> 模型。这标志着系统从“临时会话”走向了“持久化资产管理”。</li>
-</ul>
-<h2><span id="er-hou-duan-jia-gou-de-gui-fan-hua-go">二、 后端架构的规范化 (Go)</span></h2><p>v0.1.0 虽然已有 Middleware 思想，但 v0.2.0 将其<strong>体系化</strong>了。</p>
-<h3><span id="1-jian-quan-ti-xi-de-luo-di">1. 鉴权体系的落地</span></h3><ul>
-<li><p><strong>JWT + DB</strong>：我们将原有的鉴权机制升级为基于数据库的 JWT 验证。</p>
+<li><p>实现<strong>用户体验与繁重计算的解耦</strong>。前端上传文件后，Go 网关并不等待解析完成，而是将任务丢进 Redis 队列并立即返回“上传成功”。</p>
 </li>
-<li><p><strong>中间件标准化</strong>：重写了 Gin 中间件，使其不仅负责拦截，还负责<strong>上下文注入</strong>（<code>c.Set(&quot;userID&quot;, ...)</code>）。这让后续的 Controller 层完全不需要关心“解析 Token”这种脏活，专注于业务。</p>
+<li><p>后台的 Go Worker 默默消费任务，负责协调数据的流动。</p>
 </li>
 </ul>
-<h3><span id="2-clean-architecture-zheng-ji-jia-gou">2. Clean Architecture (整洁架构)</span></h3><p>我们对代码进行了分层重构：</p>
+</li>
+<li><p><strong>设计思考</strong>: 如果没有这一层，解析一个 500 页的 PDF 会导致浏览器长时间转圈等待。异步化是提升用户体验的关键一步。当然，在使用时也暴露了新的问题：没有做批量上传和文档归类，会考虑在后续进行优化。</p>
+</li>
+</ul>
+<h4><span id="2-3-ren-zhi-ji-suan-ceng-cognitive-layer-python-de-wu-tai">2.3 认知计算层 (Cognitive Layer) - Python 的舞台</span></h4><ul>
+<li><p><strong>技术栈</strong>: Python + gRPC + PyMuPDF + SentenceTransformers</p>
+</li>
+<li><p><strong>职责</strong>:</p>
 <ul>
-<li><p><strong>Data 层</strong>：收敛了所有的 DB、Redis、MinIO 操作。</p>
+<li><p>它是系统的“大脑”，负责“脏活累活”。接收 Go 传来的文件流，利用 <code>PyMuPDF</code> 将 PDF“嚼碎”成文本切片，再调用 Embedding 模型将其向量化。</p>
 </li>
-<li><p><strong>Service 层</strong>：只关注业务编排。</p>
-</li>
-<li><p><strong>Handler 层</strong>：只关注 HTTP 协议解析。 这种分层让单元测试和后续维护变得异常轻松。</p>
+<li><p>通过 <strong>gRPC Server</strong> 暴露内部能力，供 Go Worker 调用。</p>
 </li>
 </ul>
-<h2><span id="san-ai-nei-he-de-mo-kuai-hua-python">三、 AI 内核的模块化 (Python)</span></h2><p>这是 v0.2.0 变动最大的部分。为了迎接未来的多模态和 Agent 架构，我们废弃了单脚本模式。</p>
+</li>
+<li><p><strong>设计思考</strong>: 选择 gRPC 而不是 HTTP RESTful，是为了利用 Protobuf 的高效序列化和 HTTP&#x2F;2 的多路复用特性，确保在内部服务间传输大文本和向量数据时的高性能。</p>
+</li>
+</ul>
+<h4><span id="2-4-ji-yi-yu-sheng-cheng-ceng-memory-amp-generation">2.4 记忆与生成层 (Memory &amp; Generation)</span></h4><ul>
+<li><p><strong>技术栈</strong>: Qdrant + DeepSeek V3 API</p>
+</li>
+<li><p><strong>职责</strong>:</p>
 <ul>
-<li><p><strong>Core 层</strong>：封装 LLM、Embedding、Splitter 等原子能力。</p>
+<li><p><strong>Qdrant</strong>: 存储向量化的“长期记忆”。我们在 Payload 中存储了 PageNumber 和原文片段，这是实现“引用溯源”的基础。</p>
 </li>
-<li><p><strong>Tools 层</strong>：将 PDF 解析（PyMuPDF）独立为工具。这为 v0.3.0 替换为 Docling 埋下了伏笔。</p>
-</li>
-<li><p><strong>Service 层</strong>：纯粹的 gRPC 胶水层。</p>
+<li><p><strong>DeepSeek</strong>: 最终的“表达者”。它基于我们检索到的上下文，组织语言回答用户，并支持 Markdown 格式输出。</p>
 </li>
 </ul>
-<p>现在的 Python 服务，已经做好了被未来 Agent 调用的准备。</p>
-<h2><span id="si-qian-duan-gong-cheng-hua-vue-3">四、 前端工程化 (Vue 3)</span></h2><p>我们完善了前端的“最后一块拼图”：</p>
+</li>
+</ul>
+<hr>
+<h2><span id="3-guan-jian-ji-zhu-tiao-zhan-yu-cai-keng-shi-lu">3. 关键技术挑战与“踩坑”实录</span></h2><p>v0.1.0 的开发并非一帆风顺，以下是三个印象最深刻的技术卡点与解决方案。</p>
+<h3><span id="3-1-grpc-de-4mb-yin-xing-qiang">3.1 gRPC 的“4MB”隐形墙</span></h3><ul>
+<li><p><strong>现象</strong>：在测试上传我的硕士开题报告（约 8.5MB）时，Python gRPC Server 抛出了 <code>ResourceExhausted</code> 错误，拒绝接收。</p>
+</li>
+<li><p><strong>根因</strong>：gRPC 默认限制单次消息大小为 4MB (4,194,304 bytes)。这是一个常见的微服务通信陷阱。</p>
+</li>
+<li><p><strong>解决</strong>：需要在 Python Server 端和 Go Client 端同时修改配置。</p>
 <ul>
-<li><p>**状态管理 (Pinia)**：持久化存储用户状态，与 v0.1.0 已有的 SSE 鉴权机制完美对接。</p>
+<li><p><strong>Go Client</strong>: 在 <code>grpc.Dial</code> 时添加 <code>grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(100*1024*1024), ...)</code>。</p>
 </li>
-<li><p><strong>交互闭环</strong>：新增登录&#x2F;注册页，配合 Axios 拦截器，实现了用户无感知的 Token 刷新与携带。</p>
+<li><p><strong>Python Server</strong>: 在 <code>grpc.server</code> 初始化时添加 <code>options=[(&#39;grpc.max_receive_message_length&#39;, 100*1024*1024), ...]</code>。</p>
+</li>
+<li><p>将阈值统一提升至 100MB，以适应未来的高清扫描件需求。</p>
 </li>
 </ul>
-<h2><span id="wu-xia-yi-bu-v0-3-0-yu-gao">五、 下一步：v0.3.0 预告</span></h2><p>随着架构地基的夯实，v0.2.0 已经是一个健壮的分布式系统。接下来，我们要把精力集中在 <strong>RAG 的核心效果</strong>上。</p>
-<p><strong>v0.3.0 目标：AI 的觉醒</strong></p>
+</li>
+</ul>
+<h3><span id="3-2-huan-jue-zhi-li-yu-shang-xia-wen-chuang-kou-diao-you">3.2 “幻觉”治理与上下文窗口调优</span></h3><ul>
+<li><p><strong>现象</strong>：起初，对于一些细节问题，DeepSeek 的回答非常空泛，甚至提示“提供的上下文信息不完整，无法回答”。</p>
+</li>
+<li><p><strong>根因</strong>：</p>
+<ol>
+<li><p><strong>检索量不足</strong>：为了省 Token，最初只检索了 <code>TopK=3</code> 个切片，导致关键信息遗漏。</p>
+</li>
+<li><p><strong>Prompt 结构单一</strong>：只喂给了模型纯文本，没有包含页码等元数据，模型无法建立空间感。</p>
+</li>
+</ol>
+</li>
+<li><p><strong>解决</strong>：</p>
+<ol>
+<li><p><strong>扩大视野</strong>：充分利用 DeepSeek V3 的长上下文能力和低成本优势，将 <code>TopK</code> 提升至 15。</p>
+</li>
+<li><p><strong>结构化 Prompt</strong>：重构提示词模板，显式注入结构化信息：</p>
+ <figure class="highlight jboss-cli"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs jboss-cli">背景知识：<br>[片段1] <span class="hljs-params">(第5页)</span>: <span class="hljs-string">...</span>原文内容<span class="hljs-string">...</span><br>[片段2] <span class="hljs-params">(第8页)</span>: <span class="hljs-string">...</span>原文内容<span class="hljs-string">...</span><br><span class="hljs-string">...</span><br>用户问题：xxx<br></code></pre></td></tr></table></figure>
+<p> 这显著提升了回答的准确率和“引用感”。</p>
+</li>
+</ol>
+</li>
+</ul>
+<h3><span id="3-3-ji-su-qian-duan-yan-zheng-bi-huan">3.3 极速前端：验证闭环</span></h3><ul>
+<li><p><strong>背景</strong>：由于后端进度过快，为了验证全链路闭环，需要快速搭建一个前端界面。</p>
+</li>
+<li><p><strong>解决</strong>：基于 <strong>Vite + Vue 3 + Arco Design</strong>，完成了一个单页应用。利用 <code>@microsoft/fetch-event-source</code> 库完美处理了后端的 SSE 流式响应，配合 <code>markdown-it</code> 实现了类似 ChatGPT 的逐字打印渲染效果。这证明了全栈能力在快速原型验证中的重要性。</p>
+</li>
+</ul>
+<hr>
+<h2><span id="4-cheng-guo">4. 成果</span></h2><p>目前，Chimera-RAG 的 v0.1.0 版本已经具备了“真实阅读能力”。它不再是简单地根据文件名猜答案，而是能精准定位到 PDF 文档中的具体段落，并结合上下文进行推理。</p>
+<hr>
+<h2><span id="5-zhan-wang-v0-2-0">5. 展望 v0.2.0</span></h2><p>v0.1.0 的成功验证了异构架构的可行性，但也暴露了 MVP 与企业级产品之间的差距。为了构建更强大、更安全的知识库平台，v0.2.0 的技术演进路线已规划完毕：</p>
 <ul>
-<li><p><strong>Docling 接入</strong>：用 AI 视觉技术替代传统的文本提取，读懂表格和布局。</p>
+<li><p><strong>数据基座升级</strong>：</p>
+<ul>
+<li><p>引入 <strong>PostgreSQL</strong>：存储用户体系、组织架构及文件夹目录树，实现 RBAC 权限控制。</p>
 </li>
-<li><p><strong>语义切分</strong>：基于 Markdown 标题的智能分块，不再暴力截断上下文。</p>
-</li>
-<li><p><strong>知识图谱</strong>：探索 NebulaGraph，向 GraphRAG 进发。</p>
+<li><p>引入 <strong>NebulaGraph</strong>：构建领域知识图谱，实现 GraphRAG，提升对复杂实体关系的推理能力。</p>
 </li>
 </ul>
+</li>
+<li><p><strong>解析能力进化</strong>：</p>
+<ul>
+<li>针对目前 PyMuPDF 对表格和多栏排版支持不佳的问题，计划切换至 SOTA 方案 <strong>Docling</strong> 或 <strong>Unstructured</strong>，实现文档的结构化高保真解析。</li>
+</ul>
+</li>
+<li><p><strong>多智能体编排</strong>：</p>
+<ul>
+<li>Python 端将引入 <strong>LangGraph</strong>，将当前的单体逻辑拆分为 Router、Retriever、Critic 等多个 Agent，实现自我修正与反思能力。</li>
+</ul>
+</li>
+<li><p><strong>全链路可观测性</strong>：</p>
+<ul>
+<li>接入 <strong>Langfuse</strong>，实现对 Prompt 传输、Token 消耗和响应延迟的全链路追踪与调试。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2><span id="6-jie-yu">6. 结语</span></h2><p>Chimera-RAG 的 v0.1.0 版本是一个激动人心的开始。它证明了 <strong>“Go 工程底座 + Python AI 引擎”</strong> 这一混合范式在构建高性能、智能化应用时的巨大潜力。</p>
+<p>未来的 v0.2.0，我们将致力于让它从一个“聪明的工具”进化为一个“专业的平台”。</p>
 <p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
 <p>Project Repo: [<a target="_blank" rel="noopener" href="https://github.com/stack-echo/Chimera-RAG]">https://github.com/stack-echo/Chimera-RAG]</a></p>
@@ -357,6 +442,34 @@
             <div>
               <div class="post-metas my-3">
   
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/" class="category-chain-item">项目复盘</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/" class="category-chain-item">Chimera-RAG</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
   
 </div>
 
@@ -366,8 +479,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>[复盘]混合架构：从零构建Chimera-RAG（v0.2.0）开发复盘</div>
-      <div>https://stackecho.blog/2025/12/27/项目复盘/Chimera-RAG/2025-12-27-[复盘]混合架构：从零构建Chimera-RAG（v0.2.0）开发复盘/</div>
+      <div>混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘</div>
+      <div>https://stackecho.blog/2025/12/26/项目复盘/Chimera-RAG/2025-12-26-混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘/</div>
     </div>
     <div class="license-meta">
       
@@ -379,7 +492,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2025年12月27日</div>
+          <div>2025年12月26日</div>
         </div>
       
       
@@ -411,12 +524,18 @@
                   <article class="post-prev col-6">
                     
                     
+                      <a href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E5%A4%AF%E5%AE%9E%E5%9C%B0%E5%9F%BA%EF%BC%9AChimera-RAG%20%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="夯实地基：Chimera-RAG（v0.2.0）开发复盘">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">夯实地基：Chimera-RAG（v0.2.0）开发复盘</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
                   </article>
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-26-%5B%E5%A4%8D%E7%9B%98%5D%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="[复盘]混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘">
-                        <span class="hidden-mobile">[复盘]混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘</span>
+                      <a href="/2025/09/29/Golang/2025-09-29-sync%E5%8C%85/" title="sync包">
+                        <span class="hidden-mobile">sync包</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
