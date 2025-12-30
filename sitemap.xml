@@ -2,36 +2,45 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://stackecho.blog/2025/12/28/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-28-%E7%AD%91%E7%89%A2%E9%98%B2%E7%BA%BF%EF%BC%9AChimera-RAG%EF%BC%88v0.4.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</loc>
+    <loc>https://stackecho.blog/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-26-%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</loc>
     
-    <lastmod>2025-12-28</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://stackecho.blog/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E6%8B%92%E7%BB%9D%E5%B9%BB%E8%A7%89%EF%BC%9AChimera-RAG%EF%BC%88v0.3.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</loc>
-    
-    <lastmod>2025-12-27</lastmod>
+    <lastmod>2025-12-30</lastmod>
     
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>https://stackecho.blog/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E5%A4%AF%E5%AE%9E%E5%9C%B0%E5%9F%BA%EF%BC%9AChimera-RAG%20%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</loc>
+    <loc>https://stackecho.blog/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-27-%E5%A4%AF%E5%AE%9E%E5%9C%B0%E5%9F%BA%EF%BC%9AChimera-RAG%20%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</loc>
     
-    <lastmod>2025-12-27</lastmod>
+    <lastmod>2025-12-30</lastmod>
     
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>https://stackecho.blog/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-26-%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</loc>
+    <loc>https://stackecho.blog/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-27-%E6%8B%92%E7%BB%9D%E5%B9%BB%E8%A7%89%EF%BC%9AChimera-RAG%EF%BC%88v0.3.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</loc>
     
-    <lastmod>2025-12-27</lastmod>
+    <lastmod>2025-12-30</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://stackecho.blog/2025/12/28/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-28-%E7%AD%91%E7%89%A2%E9%98%B2%E7%BA%BF%EF%BC%9AChimera-RAG%EF%BC%88v0.4.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</loc>
+    
+    <lastmod>2025-12-30</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://stackecho.blog/2025/12/30/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-30-%E7%A0%B4%E8%8C%A7%E9%87%8D%E7%94%9F%EF%BC%9AChimera%EF%BC%88v0.5.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/</loc>
+    
+    <lastmod>2025-12-30</lastmod>
     
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -202,7 +211,7 @@
 
   <url>
     <loc>https://stackecho.blog/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -212,77 +221,84 @@
   
   <url>
     <loc>https://stackecho.blog/categories/Golang/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://stackecho.blog/categories/Python/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://stackecho.blog/categories/%E6%9D%82%E8%B0%88/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://stackecho.blog/categories/%E7%88%AC%E8%99%AB/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://stackecho.blog/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://stackecho.blog/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/MIT-6-s081%E4%BF%AE%E7%82%BC%E7%AC%94%E8%AE%B0/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://stackecho.blog/categories/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://stackecho.blog/categories/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/%E8%AE%BA%E6%96%87%E7%B2%BE%E8%AF%BB/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://stackecho.blog/categories/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/%E9%A1%B9%E7%9B%AE/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://stackecho.blog/categories/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://stackecho.blog/categories/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2025-12-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://stackecho.blog/categories/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/</loc>
+    <lastmod>2025-12-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>

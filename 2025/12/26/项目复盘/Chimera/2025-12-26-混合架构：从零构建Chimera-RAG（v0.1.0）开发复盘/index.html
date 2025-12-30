@@ -22,13 +22,13 @@
     <meta name="description" content="摘要：在 EHS 安全合规领域，如何让 AI 真正“读懂”晦涩的法规文档？本文记录了我基于 Go (网关) + Python (大脑) 混合架构，结合 Qdrant 与 DeepSeek，构建 RAG 系统的全过程。从 gRPC 的 4MB 限制到上下文窗口的调优，复盘 v0.1.0 版本的关键技术决策与实战踩坑。  1. 缘起：当 Go 的快遇上 Python 的智在构建一个垂直领域的 RAG">
 <meta property="og:type" content="article">
 <meta property="og:title" content="混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘">
-<meta property="og:url" content="https://stackecho.blog/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-26-%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/index.html">
+<meta property="og:url" content="https://stackecho.blog/2025/12/26/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-26-%E6%B7%B7%E5%90%88%E6%9E%B6%E6%9E%84%EF%BC%9A%E4%BB%8E%E9%9B%B6%E6%9E%84%E5%BB%BAChimera-RAG%EF%BC%88v0.1.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/index.html">
 <meta property="og:site_name" content="StackEcho">
 <meta property="og:description" content="摘要：在 EHS 安全合规领域，如何让 AI 真正“读懂”晦涩的法规文档？本文记录了我基于 Go (网关) + Python (大脑) 混合架构，结合 Qdrant 与 DeepSeek，构建 RAG 系统的全过程。从 gRPC 的 4MB 限制到上下文窗口的调优，复盘 v0.1.0 版本的关键技术决策与实战踩坑。  1. 缘起：当 Go 的快遇上 Python 的智在构建一个垂直领域的 RAG">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://oss-pai-ou3opkiglu3o9cspyq-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/blog/Chimera-%20RAG%20v0.1.0.png">
 <meta property="article:published_time" content="2025-12-26T13:19:58.000Z">
-<meta property="article:modified_time" content="2025-12-27T13:20:38.861Z">
+<meta property="article:modified_time" content="2025-12-30T12:46:11.809Z">
 <meta property="article:author" content="Xu Yuyang">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://oss-pai-ou3opkiglu3o9cspyq-cn-hangzhou.oss-cn-hangzhou.aliyuncs.com/blog/Chimera-%20RAG%20v0.1.0.png">
@@ -432,7 +432,7 @@
 <p>未来的 v0.2.0，我们将致力于让它从一个“聪明的工具”进化为一个“专业的平台”。</p>
 <p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
-<p>Project Repo: [<a target="_blank" rel="noopener" href="https://github.com/stack-echo/Chimera-RAG]">https://github.com/stack-echo/Chimera-RAG]</a></p>
+<p>Project Repo: [<a target="_blank" rel="noopener" href="https://github.com/stack-echo/Chimera]">https://github.com/stack-echo/Chimera]</a></p>
 </blockquote>
 
                 
@@ -480,7 +480,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘</div>
-      <div>https://stackecho.blog/2025/12/26/项目复盘/Chimera-RAG/2025-12-26-混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘/</div>
+      <div>https://stackecho.blog/2025/12/26/项目复盘/Chimera/2025-12-26-混合架构：从零构建Chimera-RAG（v0.1.0）开发复盘/</div>
     </div>
     <div class="license-meta">
       
@@ -524,7 +524,7 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E5%A4%AF%E5%AE%9E%E5%9C%B0%E5%9F%BA%EF%BC%9AChimera-RAG%20%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="夯实地基：Chimera-RAG（v0.2.0）开发复盘">
+                      <a href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-27-%E5%A4%AF%E5%AE%9E%E5%9C%B0%E5%9F%BA%EF%BC%9AChimera-RAG%20%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="夯实地基：Chimera-RAG（v0.2.0）开发复盘">
                         <i class="iconfont icon-arrowleft"></i>
                         <span class="hidden-mobile">夯实地基：Chimera-RAG（v0.2.0）开发复盘</span>
                         <span class="visible-mobile">上一篇</span>

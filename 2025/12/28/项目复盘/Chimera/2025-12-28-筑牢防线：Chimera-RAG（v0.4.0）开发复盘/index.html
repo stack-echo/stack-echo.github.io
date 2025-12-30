@@ -19,21 +19,21 @@
   <meta name="author" content="Xu Yuyang">
   <meta name="keywords" content="">
   
-    <meta name="description" content="引言：RAG 的信任危机在 v0.2.0 版本中，我搭建了一套标准的 RAG 架构（Go+Python+MinIO+Qdrant）。它跑通了，但它像个“瞎子”。 它使用 PyMuPDF 机械地提取文本，把表格读成乱码，把标题和正文混为一谈。最致命的是，当它回答问题时，用户无法验证真伪——它说“见第4页”，但我根本不知道第4页在哪里。 于是，v0.3.0  应运而生。 一、 核心突破：给 AI 装上">
+    <meta name="description" content="引言：当 Demo 遇上“现实引力”在 v0.3.0 版本中，我引入 Docling 解决了 RAG 的“视力问题”。但当我想把这个系统真正部署给团队使用时，原本“能跑就行”的后端架构瞬间崩塌了。 三个致命问题摆在面前：  裸奔的数据：没有组织隔离，任何人都能检索到所有向量数据。  不可测的接口：所有对话接口强制 SSE 流式输出，导致自动化测试脚本无法断言，每次改代码都要人工点点点。  脆弱的逻">
 <meta property="og:type" content="article">
-<meta property="og:title" content="拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘">
-<meta property="og:url" content="https://stackecho.blog/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E6%8B%92%E7%BB%9D%E5%B9%BB%E8%A7%89%EF%BC%9AChimera-RAG%EF%BC%88v0.3.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/index.html">
+<meta property="og:title" content="筑牢防线：Chimera-RAG（v0.4.0）开发复盘">
+<meta property="og:url" content="https://stackecho.blog/2025/12/28/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-28-%E7%AD%91%E7%89%A2%E9%98%B2%E7%BA%BF%EF%BC%9AChimera-RAG%EF%BC%88v0.4.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/index.html">
 <meta property="og:site_name" content="StackEcho">
-<meta property="og:description" content="引言：RAG 的信任危机在 v0.2.0 版本中，我搭建了一套标准的 RAG 架构（Go+Python+MinIO+Qdrant）。它跑通了，但它像个“瞎子”。 它使用 PyMuPDF 机械地提取文本，把表格读成乱码，把标题和正文混为一谈。最致命的是，当它回答问题时，用户无法验证真伪——它说“见第4页”，但我根本不知道第4页在哪里。 于是，v0.3.0  应运而生。 一、 核心突破：给 AI 装上">
+<meta property="og:description" content="引言：当 Demo 遇上“现实引力”在 v0.3.0 版本中，我引入 Docling 解决了 RAG 的“视力问题”。但当我想把这个系统真正部署给团队使用时，原本“能跑就行”的后端架构瞬间崩塌了。 三个致命问题摆在面前：  裸奔的数据：没有组织隔离，任何人都能检索到所有向量数据。  不可测的接口：所有对话接口强制 SSE 流式输出，导致自动化测试脚本无法断言，每次改代码都要人工点点点。  脆弱的逻">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2025-12-27T13:21:35.000Z">
-<meta property="article:modified_time" content="2025-12-27T13:23:19.412Z">
+<meta property="article:published_time" content="2025-12-28T14:46:28.000Z">
+<meta property="article:modified_time" content="2025-12-30T12:45:52.026Z">
 <meta property="article:author" content="Xu Yuyang">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘 - StackEcho</title>
+  <title>筑牢防线：Chimera-RAG（v0.4.0）开发复盘 - StackEcho</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -204,7 +204,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘"></span>
+            <span id="subtitle" data-typed-text="筑牢防线：Chimera-RAG（v0.4.0）开发复盘"></span>
           
         </div>
 
@@ -215,8 +215,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2025-12-27 21:21" pubdate>
-          2025年12月27日 晚上
+        <time datetime="2025-12-28 22:46" pubdate>
+          2025年12月28日 晚上
         </time>
       </span>
     
@@ -227,7 +227,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          617 字
+          1k 字
         
       </span>
     
@@ -238,7 +238,7 @@
         
         
         
-          6 分钟
+          9 分钟
         
       </span>
     
@@ -275,58 +275,71 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘</h1>
+            <h1 id="seo-header">筑牢防线：Chimera-RAG（v0.4.0）开发复盘</h1>
             
             
               <div class="markdown-body">
                 
-                <h4><span id="yin-yan-rag-de-xin-ren-wei-ji">引言：RAG 的信任危机</span></h4><p>在 v0.2.0 版本中，我搭建了一套标准的 RAG 架构（Go+Python+MinIO+Qdrant）。它跑通了，但它像个“瞎子”。 它使用 PyMuPDF 机械地提取文本，把表格读成乱码，把标题和正文混为一谈。最致命的是，当它回答问题时，用户无法验证真伪——它说“见第4页”，但我根本不知道第4页在哪里。 于是，<strong>v0.3.0</strong>  应运而生。</p>
-<h4><span id="yi-he-xin-tu-po-gei-ai-zhuang-shang-yan-jing-docling-integration">一、 核心突破：给 AI 装上“眼睛” (Docling Integration)</span></h4><p>我废弃了传统的 <code>fitz</code> 方案，引入了 IBM 开源的 <strong>Docling</strong>。</p>
-<ul>
-<li><p><strong>多模态解析</strong>：它不仅仅是识字，它是基于视觉模型在“看”文档。它能精准识别表格结构、段落层级和页面布局。</p>
-</li>
-<li><p>**语义切分 (HybridChunking)**：</p>
-<ul>
-<li><p><em>Old Way</em>: 每 500 字切一刀，经常把一句话切断。</p>
-</li>
-<li><p><em>New Way</em>: 基于 Docling 的 <code>HybridChunker</code>，它尊重文档结构，按章节、段落切分，并且完整保留了元数据（Metadata）。</p>
-</li>
-</ul>
-</li>
-</ul>
-<h4><span id="er-ti-yan-bi-huan-xin-ren-yuan-yu-ke-su-yuan">二、 体验闭环：信任源于“可溯源”</span></h4><p>RAG 如果不能跳转原文，就是耍流氓。在 v0.3.0 中，我打通了“数据-后端-前端”的最后一公里：</p>
+                <h4><span id="yin-yan-dang-demo-yu-shang-xian-shi-yin-li">引言：当 Demo 遇上“现实引力”</span></h4><p>在 v0.3.0 版本中，我引入 Docling 解决了 RAG 的<strong>“视力问题”</strong>。但当我想把这个系统真正部署给团队使用时，原本“能跑就行”的后端架构瞬间崩塌了。</p>
+<p>三个致命问题摆在面前：</p>
 <ol>
-<li><p><strong>数据层</strong>：Python 解析时，将 <code>page_number</code> 烙印在每一个 Vector Chunk 中。</p>
+<li><p><strong>裸奔的数据</strong>：没有组织隔离，任何人都能检索到所有向量数据。</p>
 </li>
-<li><p><strong>交互层</strong>：</p>
+<li><p><strong>不可测的接口</strong>：所有对话接口强制 SSE 流式输出，导致自动化测试脚本无法断言，每次改代码都要人工点点点。</p>
+</li>
+<li><p><strong>脆弱的逻辑</strong>：业务逻辑耦合在 HTTP Handler 层，Service 层形同虚设。</p>
+</li>
+</ol>
+<p><strong>v0.4.0</strong> 是一次深度的后端手术。我重写了 40% 的 Go 代码，并引入 <strong>Apifox</strong> 构建了完整的自动化测试防线。</p>
+<h4><span id="yi-jia-gou-chong-gou-cong-ruan-ge-chi-dao-ying-fang-yu">一、 架构重构：从“软隔离”到“硬防御”</span></h4><p>在 SaaS 架构中，最可怕的不是服务宕机，而是数据泄露。</p>
+<p><strong>1. 多租户模型的原子性重构</strong> 我废弃了扁平的用户表，构建了 <code>User</code> -&gt; <code>OrganizationMember</code> -&gt; <code>Organization</code> 的多租户模型。 最棘手的是“创建组织”的逻辑：既要创建组织，又要将创建者设为 Owner。我利用 GORM 的 <strong>Transaction（事务）</strong> 机制，确保了这两个动作的原子性——要么同时成功，要么全部回滚，杜绝了“无主组织”的脏数据。</p>
+<p><strong>2. 纵深防御 (Defense in Depth)</strong> 以往的 RAG 系统往往依赖向量数据库的 Filter 做隔离（软隔离）。但这不仅浪费 Embedding 算力，一旦 Filter 写错，数据即刻泄露。 我在 Go Service 层实现了 <strong>“硬隔离”</strong>：</p>
 <ul>
-<li><p><strong>Prompt Engineering</strong>：强制 LLM 使用 <code>&lt;&lt;filename|page&gt;&gt;</code> 格式引用。</p>
+<li><p><strong>拦截机制</strong>：在调用昂贵的 Python 向量服务或 LLM 之前，Service 层强制校验 <code>UserID</code> 与 <code>KbID</code> 的所属关系。</p>
 </li>
-<li><p><strong>Vue 渲染</strong>：前端正则解析引用，将其渲染为可点击的蓝色锚点。</p>
+<li><p><strong>效果</strong>：非法请求在 Go 内存层即被 <code>403 Forbidden</code> 拦截。<strong>非法请求连向量数据库的大门都摸不到。</strong></p>
+</li>
+</ul>
+<h4><span id="er-jie-kou-gong-cheng-hua-xun-fu-liu-shi-xiang-ying">二、 接口工程化：驯服“流式响应”</span></h4><p>为了让系统可测试，我必须解决 SSE (Server-Sent Events) 难以被脚本断言的问题。</p>
+<p>我采用了一种 <strong>“双模接口” (Dual-Mode API)</strong> 设计：</p>
+<ul>
+<li><p><strong>DTO 改造</strong>：在请求体中增加 <code>stream: bool</code> 字段。</p>
+</li>
+<li><p><strong>Handler 分流</strong>：</p>
+<ul>
+<li><p><code>stream=true</code>：走 SSE 通道，适配 Vue 前端，保持打字机体验。</p>
+</li>
+<li><p><code>stream=false</code>：后端自动缓冲 Channel 数据，一次性返回标准 JSON。</p>
 </li>
 </ul>
 </li>
-<li><p><strong>展示层</strong>：</p>
-<ul>
-<li><p>Go 后端实现了 MinIO 文件流的 HTTP 代理。</p>
-</li>
-<li><p>前端引入 <code>vue-pdf-embed</code>，实现了“点击引用 -&gt; 右侧 PDF 自动弹出并跳转”的丝滑体验。</p>
+<li><p><strong>错误探测</strong>：在非流式模式下，如果 Service 层返回了 <code>ERR: ⛔️</code>，Handler 会自动将其转换为 HTTP 403 状态码。这为后续的自动化测试铺平了道路。</p>
 </li>
 </ul>
+<h4><span id="san-zi-dong-hua-ce-shi-apifox-de-jiang-wei-da-ji">三、 自动化测试：Apifox 的降维打击</span></h4><p>这是 v0.4.0 开发体验提升最大的地方。重构涉及到底层鉴权逻辑，如果靠手动测试，每一次 Commit 都是一场豪赌。</p>
+<p>我使用 <strong>Apifox</strong> 搭建了一套包含 10+ 个步骤的自动化测试场景：</p>
+<p><strong>场景实战：模拟“越权攻击”</strong></p>
+<ol>
+<li><p><strong>前置脚本</strong>：自动注册用户 A（研发部）和用户 B（财务部）。</p>
+</li>
+<li><p><strong>数据准备</strong>：A 用户上传一份“机密文档”并建立知识库。</p>
+</li>
+<li><p><strong>攻击模拟</strong>：脚本提取 B 的 Token，携带 A 的 <code>kb_id</code> 发起检索请求。</p>
+</li>
+<li><p><strong>自动断言</strong>：Apifox 自动校验响应状态码是否为 <code>403</code>，以及 JSON Body 中是否包含 <code>Access Denied</code>。</p>
 </li>
 </ol>
-<h4><span id="san-cai-keng-yu-fan-si">三、 踩坑与反思</span></h4><ol>
-<li><p><strong>环境地狱</strong>：Docling 的依赖极其复杂（PyTorch 等），Docker 镜像体积激增，构建时间变长。这是智能化的代价。</p>
+<p>现在，无论我如何修改底层代码，只要点击“运行”，3秒钟内我就能知道系统是否依然安全。<strong>全绿的测试报告，是重构者最大的底气。</strong></p>
+<h4><span id="si-cai-keng-yu-fan-si">四、 踩坑与反思</span></h4><ol>
+<li><p><strong>指针的代价</strong>：GORM 默认将可空字段映射为 <code>*uint</code> 指针。在做权限比对时，直接拿指针和 <code>int</code> 比较会导致 Panic。必须养成为数据库字段判空 (<code>nil check</code>) 再取值 (<code>*ptr</code>) 的肌肉记忆。</p>
 </li>
-<li><p><strong>上下文拼接</strong>：最开始 LLM 总是无法正确引用，后来发现是因为我在 Go 端组装 Prompt 时，只拼了内容，忘了拼 <code>Page</code> 和 <code>FileName</code>。<strong>AI 只能利用你喂给它的信息</strong>，这一点至关重要。</p>
-</li>
-<li><p><strong>PDF 坐标系</strong>：前端 PDF 跳转一度失效，最后发现是 <code>vue-pdf-embed</code> 的页码属性绑定问题。</p>
+<li><p><strong>测试驱动开发 (TDD)<strong>：以前我觉得写测试是浪费时间，但这次重构证明，</strong>先写 Apifox 测试用例，再写 Go 实现代码</strong>，实际上减少了 50% 的 Debug 时间。</p>
 </li>
 </ol>
-<h4><span id="si-xia-yi-bu-mai-xiang-qi-ye-ji-agent-ping-tai">四、 下一步：迈向企业级 Agent 平台</span></h4><p>现在的 Chimera-RAG 已经是一个极其好用的单兵武器。但我的野心不止于此。 v0.4.0 将引入 <strong>组织架构 (Organization)</strong> 和 **多智能体 (Multi-Agent)**，让它进化为支持团队协作、具备链路追踪能力的 AgentOps 平台。</p>
+<h4><span id="wu-zhan-wang-v0-5-0">五、 展望 v0.5.0</span></h4><p>地基已经打牢，防线已经筑起。 接下来的 <strong>v0.5.0</strong>，我将把目光转回 AI 本身。Chimera-RAG 目前还是个“金鱼”，只有 7 秒记忆。下一版本，我们将引入 <strong>Context &amp; Memory</strong>，让它拥有真正的对话记忆。</p>
 <p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
-<p>Project Repo: [<a target="_blank" rel="noopener" href="https://github.com/stack-echo/Chimera-RAG]">https://github.com/stack-echo/Chimera-RAG]</a></p>
+<p>Project Repo: [<a target="_blank" rel="noopener" href="https://github.com/stack-echo/Chimera]">https://github.com/stack-echo/Chimera]</a></p>
 </blockquote>
 
                 
@@ -335,6 +348,34 @@
             <hr/>
             <div>
               <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/" class="category-chain-item">项目复盘</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/" class="category-chain-item">Chimera-RAG</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
   
   
 </div>
@@ -345,8 +386,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘</div>
-      <div>https://stackecho.blog/2025/12/27/项目复盘/Chimera-RAG/2025-12-27-拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘/</div>
+      <div>筑牢防线：Chimera-RAG（v0.4.0）开发复盘</div>
+      <div>https://stackecho.blog/2025/12/28/项目复盘/Chimera/2025-12-28-筑牢防线：Chimera-RAG（v0.4.0）开发复盘/</div>
     </div>
     <div class="license-meta">
       
@@ -358,7 +399,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2025年12月27日</div>
+          <div>2025年12月28日</div>
         </div>
       
       
@@ -390,9 +431,9 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2025/12/28/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-28-%E7%AD%91%E7%89%A2%E9%98%B2%E7%BA%BF%EF%BC%9AChimera-RAG%EF%BC%88v0.4.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="筑牢防线：Chimera-RAG（v0.4.0）开发复盘">
+                      <a href="/2025/12/30/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-30-%E7%A0%B4%E8%8C%A7%E9%87%8D%E7%94%9F%EF%BC%9AChimera%EF%BC%88v0.5.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="默认标题">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">筑牢防线：Chimera-RAG（v0.4.0）开发复盘</span>
+                        <span class="hidden-mobile">默认标题</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
@@ -400,8 +441,8 @@
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera-RAG/2025-12-27-%E5%A4%AF%E5%AE%9E%E5%9C%B0%E5%9F%BA%EF%BC%9AChimera-RAG%20%EF%BC%88v0.2.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="夯实地基：Chimera-RAG（v0.2.0）开发复盘">
-                        <span class="hidden-mobile">夯实地基：Chimera-RAG（v0.2.0）开发复盘</span>
+                      <a href="/2025/12/27/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-27-%E6%8B%92%E7%BB%9D%E5%B9%BB%E8%A7%89%EF%BC%9AChimera-RAG%EF%BC%88v0.3.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘">
+                        <span class="hidden-mobile">拒绝幻觉：Chimera-RAG（v0.3.0）开发复盘</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
