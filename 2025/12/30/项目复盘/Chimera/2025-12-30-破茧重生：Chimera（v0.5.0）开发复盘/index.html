@@ -19,21 +19,21 @@
   <meta name="author" content="Xu Yuyang">
   <meta name="keywords" content="">
   
-    <meta name="description" content="摘要：在 v0.5.0 版本中，Chimera 完成了最艰难的一次“换心手术”。我们将一个单纯的知识库RAG问答工具，重构为了支持多租户、可观测、资源热插拔的企业级多智能体平台。本文将分享这次架构转型的思考与实现路径。    1. 为什么转型？（The “Why”）在 v0.4.0 之前，Chimera 的定位很清晰：用户上传 PDF，然后提问。这解决了“单个用户对单个文档”的需求。但在实际落地">
+    <meta name="description" content="引言：在 v0.5.0 版本中，Chimera 完成了最艰难的一次“换心手术”。我们将一个单纯的知识库RAG问答工具，重构为了支持多租户、可观测、资源热插拔的企业级多智能体平台。本文将分享这次架构转型的思考与实现路径。    1. 为什么转型？（The “Why”）在 v0.4.0 之前，Chimera 的定位很清晰：用户上传 PDF，然后提问。这解决了“单个用户对单个文档”的需求。但在实际落地">
 <meta property="og:type" content="article">
-<meta property="og:title" content="默认标题">
+<meta property="og:title" content="破茧重生：Chimera（v0.5.0）开发复盘">
 <meta property="og:url" content="https://stackecho.blog/2025/12/30/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2025-12-30-%E7%A0%B4%E8%8C%A7%E9%87%8D%E7%94%9F%EF%BC%9AChimera%EF%BC%88v0.5.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/index.html">
 <meta property="og:site_name" content="StackEcho">
-<meta property="og:description" content="摘要：在 v0.5.0 版本中，Chimera 完成了最艰难的一次“换心手术”。我们将一个单纯的知识库RAG问答工具，重构为了支持多租户、可观测、资源热插拔的企业级多智能体平台。本文将分享这次架构转型的思考与实现路径。    1. 为什么转型？（The “Why”）在 v0.4.0 之前，Chimera 的定位很清晰：用户上传 PDF，然后提问。这解决了“单个用户对单个文档”的需求。但在实际落地">
+<meta property="og:description" content="引言：在 v0.5.0 版本中，Chimera 完成了最艰难的一次“换心手术”。我们将一个单纯的知识库RAG问答工具，重构为了支持多租户、可观测、资源热插拔的企业级多智能体平台。本文将分享这次架构转型的思考与实现路径。    1. 为什么转型？（The “Why”）在 v0.4.0 之前，Chimera 的定位很清晰：用户上传 PDF，然后提问。这解决了“单个用户对单个文档”的需求。但在实际落地">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2025-12-30T12:19:31.000Z">
-<meta property="article:modified_time" content="2025-12-30T12:45:42.885Z">
+<meta property="article:modified_time" content="2025-12-31T04:36:10.793Z">
 <meta property="article:author" content="Xu Yuyang">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>默认标题 - StackEcho</title>
+  <title>破茧重生：Chimera（v0.5.0）开发复盘 - StackEcho</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -204,7 +204,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="默认标题"></span>
+            <span id="subtitle" data-typed-text="破茧重生：Chimera（v0.5.0）开发复盘"></span>
           
         </div>
 
@@ -275,13 +275,13 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">默认标题</h1>
+            <h1 id="seo-header">破茧重生：Chimera（v0.5.0）开发复盘</h1>
             
             
               <div class="markdown-body">
                 
                 <blockquote>
-<p><strong>摘要</strong>：在 v0.5.0 版本中，Chimera 完成了最艰难的一次“换心手术”。我们将一个单纯的知识库RAG问答工具，重构为了支持多租户、可观测、资源热插拔的企业级多智能体平台。本文将分享这次架构转型的思考与实现路径。  </p>
+<p>引言：在 v0.5.0 版本中，Chimera 完成了最艰难的一次“换心手术”。我们将一个单纯的知识库RAG问答工具，重构为了支持多租户、可观测、资源热插拔的企业级多智能体平台。本文将分享这次架构转型的思考与实现路径。  </p>
 </blockquote>
 <h2><span id="1-wei-shi-me-zhuan-xing-the-why">1. 为什么转型？（The “Why”）</span></h2><p>在 v0.4.0 之前，Chimera 的定位很清晰：用户上传 PDF，然后提问。这解决了“单个用户对单个文档”的需求。但在实际落地企业场景时，我发现了三个痛点：  </p>
 <ol>
@@ -318,7 +318,7 @@
         pass  
 </code></pre>
 <p>无论是本地文件还是未来的飞书 API，只要实现了 <code>load</code> 方法，就能自动接入系统的清洗、向量化（Qdrant）和图谱构建（NebulaGraph）流程。v0.5.0 内置的 <code>FileConnector</code> 集成了 <strong>Docling</strong>，实现了对 PDF 表格和布局的精准理解。  </p>
-<h2><span id="4-zhan-wang-v0-6-0">4. 展望 v0.6.0</span></h2><p>v0.5.0 完成了“数据蓄水”的工作（日志入库、向量入库）。<br>v0.6.0 将是<strong>“数据可视化”</strong>的版本：  </p>
+<h2><span id="4-zhan-wang-v0-6-0">4. 展望 v0.6.0</span></h2><p>v0.5.0 完成了“数据蓄水”的工作（日志入库、向量入库）。<br>v0.6.0 将是“数据可视化”的版本：  </p>
 <ul>
 <li>我们将构建 <strong>Chimera Insight</strong> 监控中台，将沉淀的数据画成漂亮的图表。  </li>
 <li>我们将实现 <strong>飞书&#x2F;钉钉连接器</strong>，打通企业数据的孤岛。  </li>
@@ -373,7 +373,7 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>默认标题</div>
+      <div>破茧重生：Chimera（v0.5.0）开发复盘</div>
       <div>https://stackecho.blog/2025/12/30/项目复盘/Chimera/2025-12-30-破茧重生：Chimera（v0.5.0）开发复盘/</div>
     </div>
     <div class="license-meta">
