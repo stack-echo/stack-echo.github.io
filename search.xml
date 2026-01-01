@@ -1365,7 +1365,7 @@
 </ul>
 <p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
-<p>Project Repo: [<a href="https://github.com/stack-echo/Chimera]">https://github.com/stack-echo/Chimera]</a></p>
+<p>Project Repo: <a href="https://github.com/stack-echo/Chimera">https://github.com/stack-echo/Chimera</a></p>
 </blockquote>
 ]]></content>
       <categories>
@@ -1422,7 +1422,7 @@
 <h4><span id="si-xia-yi-bu-mai-xiang-qi-ye-ji-agent-ping-tai">四、 下一步：迈向企业级 Agent 平台</span></h4><p>现在的 Chimera-RAG 已经是一个极其好用的单兵武器。但我的野心不止于此。 v0.4.0 将引入 <strong>组织架构 (Organization)</strong> 和 **多智能体 (Multi-Agent)**，让它进化为支持团队协作、具备链路追踪能力的 AgentOps 平台。</p>
 <p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
-<p>Project Repo: [<a href="https://github.com/stack-echo/Chimera]">https://github.com/stack-echo/Chimera]</a></p>
+<p>Project Repo: <a href="https://github.com/stack-echo/Chimera">https://github.com/stack-echo/Chimera</a></p>
 </blockquote>
 ]]></content>
       <categories>
@@ -1492,7 +1492,7 @@
 <h4><span id="wu-zhan-wang-v0-5-0">五、 展望 v0.5.0</span></h4><p>地基已经打牢，防线已经筑起。 接下来的 <strong>v0.5.0</strong>，我将把目光转回 AI 本身。Chimera-RAG 目前还是个“金鱼”，只有 7 秒记忆。下一版本，我们将引入 <strong>Context &amp; Memory</strong>，让它拥有真正的对话记忆。</p>
 <p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
-<p>Project Repo: [<a href="https://github.com/stack-echo/Chimera]">https://github.com/stack-echo/Chimera]</a></p>
+<p>Project Repo: <a href="https://github.com/stack-echo/Chimera">https://github.com/stack-echo/Chimera</a></p>
 </blockquote>
 ]]></content>
       <categories>
@@ -1549,7 +1549,7 @@
 </ul>
 <p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
-<p>Project Repo: [<a href="https://github.com/stack-echo/Chimera]">https://github.com/stack-echo/Chimera]</a></p>
+<p>Project Repo: <a href="https://github.com/stack-echo/Chimera">https://github.com/stack-echo/Chimera</a></p>
 </blockquote>
 ]]></content>
       <categories>
@@ -1710,7 +1710,7 @@
 <p>未来的 v0.2.0，我们将致力于让它从一个“聪明的工具”进化为一个“专业的平台”。</p>
 <p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
-<p>Project Repo: [<a href="https://github.com/stack-echo/Chimera]">https://github.com/stack-echo/Chimera]</a></p>
+<p>Project Repo: <a href="https://github.com/stack-echo/Chimera">https://github.com/stack-echo/Chimera</a></p>
 </blockquote>
 ]]></content>
       <categories>
@@ -1791,8 +1791,12 @@
 <p>在接下来的 v0.7.0 中，我们将基于这套插件架构，引入 <strong>Redis 记忆增强（Session Manager）</strong> 和 <strong>RBAC 权限体系</strong>。既然架构的枷锁已经打破，未来的可能性将不可估量。</p>
 <p>代码已开源，欢迎 Star 与 PR！</p>
 <blockquote>
-<p>Project Repo: [<a href="https://github.com/stack-echo/Chimera]">https://github.com/stack-echo/Chimera]</a></p>
+<p>Project Repo: <a href="https://github.com/stack-echo/Chimera">https://github.com/stack-echo/Chimera</a></p>
 </blockquote>
 ]]></content>
+      <categories>
+        <category>项目复盘</category>
+        <category>Chimera</category>
+      </categories>
   </entry>
 </search>
