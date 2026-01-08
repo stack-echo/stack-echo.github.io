@@ -1,0 +1,682 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Xu Yuyang">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="引言：如果说 v0.6.0 是 Chimera 平台“强身健体”的重构之作，那么 v0.6.1 则是赋予了它“思考”的灵魂。在新的服务器上，我们不仅打通了三路召回链路，更在工程实践中攻克了分布式图数据库与大模型对齐的多重挑战。  01. 骨架：Tree-T 架构下的“空间感知”【痛点】：传统的 RAG 像是在撕书。一段“工作温度 50 度”的切片在失去上下文后，AI 无法判断它描述的是 CPU">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多路召回：Chimera（v0.6.1）开发复盘">
+<meta property="og:url" content="https://stackecho.blog/2026/01/08/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2026-01-08-%E5%A4%9A%E8%B7%AF%E5%8F%AC%E5%9B%9E%EF%BC%9AChimera%EF%BC%88v0.6.1%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/index.html">
+<meta property="og:site_name" content="StackEcho">
+<meta property="og:description" content="引言：如果说 v0.6.0 是 Chimera 平台“强身健体”的重构之作，那么 v0.6.1 则是赋予了它“思考”的灵魂。在新的服务器上，我们不仅打通了三路召回链路，更在工程实践中攻克了分布式图数据库与大模型对齐的多重挑战。  01. 骨架：Tree-T 架构下的“空间感知”【痛点】：传统的 RAG 像是在撕书。一段“工作温度 50 度”的切片在失去上下文后，AI 无法判断它描述的是 CPU">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-01-08T14:37:23.000Z">
+<meta property="article:modified_time" content="2026-01-08T14:47:07.390Z">
+<meta property="article:author" content="Xu Yuyang">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>多路召回：Chimera（v0.6.1）开发复盘 - StackEcho</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"stackecho.blog","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0,"number":false,"expand_all":false,"style":"default"},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="StackEcho" type="application/atom+xml">
+</head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>StackEcho</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="多路召回：Chimera（v0.6.1）开发复盘"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-01-08 22:37" pubdate>
+          2026年1月8日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          10 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">多路召回：Chimera（v0.6.1）开发复盘</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p><strong>引言</strong>：如果说 v0.6.0 是 Chimera 平台“强身健体”的重构之作，那么 v0.6.1 则是赋予了它“思考”的灵魂。在新的服务器上，我们不仅打通了三路召回链路，更在工程实践中攻克了分布式图数据库与大模型对齐的多重挑战。</p>
+</blockquote>
+<h2><span id="01-gu-jia-tree-t-jia-gou-xia-de-kong-jian-gan-zhi">01. 骨架：Tree-T 架构下的“空间感知”</span></h2><p><strong>【痛点】</strong>：传统的 RAG 像是在撕书。一段“工作温度 50 度”的切片在失去上下文后，AI 无法判断它描述的是 CPU 还是电池。复杂表格更是在向量化后变成了“语义黑洞”。</p>
+<p><strong>【重构逻辑】</strong>：<br>我们升级了 <strong>Docling v2</strong> 解析流，引入了 <strong>Tree-T (Hierarchical Tree)</strong> 思想。</p>
+<ul>
+<li><p><strong>Breadcrumbs 注入</strong>：不再生成平铺 Chunk，而是实时回溯 H1-H3 标题栈，为每个分片强行注入 位置：章 &gt; 节 &gt; 段 的面包屑导航。</p>
+</li>
+<li><p><strong>表格命题化</strong>：将非线性表格转化为线性陈述句（如：“在表格《参数表》中，第1行的电压是220V”）。</p>
+</li>
+</ul>
+<p><strong>【收效】</strong>：检索精度提升了约 40%。即使向量相似度较低，LLM 也能通过“位置标签”精准定位知识所属层级。</p>
+<hr>
+<h2><span id="02-lian-jin-duo-zhi-neng-ti-xie-zuo-yu-o-n-ti-du-xiao-qi">02. 炼金：多智能体协作与 O(n)梯度消歧</span></h2><p><strong>【困境】</strong>：图谱构建极易产生“语义爆炸”。LLM 经常抽取出代词（它、该公司）或同义异名词（V3、DeepSeek-V3）。传统的两两对比消歧，在处理海量实体时会让处理器也陷入长久的沉思。</p>
+<p><strong>【解决方案】</strong>：<br>我们设计了一套<strong>多智能体知识流水线</strong>：</p>
+<ol>
+<li><p>**Extractor (ProPEX 模式)**：按照领域模板进行高灵敏度联合抽取。</p>
+</li>
+<li><p>**Inspector (质量审计)**：落地 <strong>M3KG-RAG</strong> 机制，实时审计并剔除低价值实体。</p>
+</li>
+<li><p>**Resolution (梯度消歧)**：参考 <strong>BookRAG</strong>，利用向量空间中的“相似度断崖”来实现 O(n)复杂度的快速归一化，并将实体名 MD5 化以突破 NebulaGraph 的 VID 限制。</p>
+</li>
+</ol>
+<hr>
+<h2><span id="03-ren-zhi-san-lu-hun-he-zhao-hui-3s-retrieval">03. 认知：三路混合召回（3S Retrieval）</span></h2><p><strong>【遇到的硬核 Bug】</strong>：用户提问“英语水平如何？”，而图谱里存的是“英语 (CET-6)”。由于 NebulaGraph 的标准索引不支持 CONTAINS 模糊匹配，检索链路在这一步直接断裂，导致图谱命中率为 0。</p>
+<p><strong>【破局方案】</strong>：<br>我们引入了 <strong>Elasticsearch (ES)</strong> 作为实体发现的“前导灯”，构建了 <strong>Symbolic（符号）+ Topological（拓扑）+ Semantic（语义）</strong> 的三路召回：</p>
+<ul>
+<li><p><strong>第一阶段</strong>：拿着关键词问 ES，利用模糊匹配和分词定位到正确的 <strong>Graph VID</strong>。</p>
+</li>
+<li><p><strong>第二阶段</strong>：拿着 VID 问 Nebula，执行多跳推理。</p>
+</li>
+<li><p><strong>第三阶段</strong>：问 Qdrant，进行语义对齐。</p>
+</li>
+</ul>
+<p><strong>【工程亮点】</strong>：为了应对分布式环境下的“元数据不同步”问题，我们实现了 <strong>Atomic Query</strong>。将 USE SPACE 与业务逻辑封装在单次原子请求内，彻底解决了 SpaceNotFound 的玄学报错。</p>
+<hr>
+<h2><span id="04-jue-ce-duo-wei-skyline-guo-lu-suan-fa">04. 决策：多维 Skyline 过滤算法</span></h2><p><strong>【问题】</strong>：三路召回会带回海量候选证据。如果一股脑塞给 LLM，不仅浪费 Token，还会因为噪声导致 AI 回答“跑偏”。</p>
+<p><strong>【算法落地】</strong>：<br>我们不再使用简单的 Top-K 分数重排，而是落地了 <strong>Skyline 过滤算法</strong>（帕累托最优选择）：</p>
+<ul>
+<li><p><strong>三维评价指标</strong>：向量分（局部相关性）、拓扑分（知识网络中心度）、层级分（Tree 深度）。</p>
+</li>
+<li><p><strong>效果</strong>：系统只保留在至少一个维度上达到极致的“黄金证据”，将上下文长度缩减了 60%，却让回答深度有了质的提升。</p>
+</li>
+</ul>
+<hr>
+<h2><span id="05-shi-jue-bai-he-hua-de-xai-ke-shi-hua">05. 视觉：白盒化的 XAI 可视化</span></h2><p><strong>【成品展示】</strong>：<br>一个成熟的企业级 RAG 不应是“黑盒”。在 v0.6.1 中，我们为前端提供了生成 <strong>ECharts 动态拓扑图</strong>的接口：</p>
+<ul>
+<li><p>用户提问后，系统先展示 <strong>Thought Chain（思考链）</strong>。</p>
+</li>
+<li><p>紧接着，右侧面板会自动绘制出本次推理涉及的<strong>实体关联网</strong>。</p>
+</li>
+<li><p>最后，回答中每一处核心事实都精准标注了 [1] 或 [2] 的参考来源。</p>
+</li>
+</ul>
+<hr>
+<h2><span id="06-jie-yu-shi-yan-shi-li-de-suan-li-zhong-tai">06. 结语：实验室里的算力中台</span></h2><p>目前，Chimera v0.6.1 已在我们的服务器上稳定运行。通过 <strong>Cloudflare Tunnel</strong>，我们成功将其转化为一个<strong>通用 API Runner</strong>。</p>
+<p>这次开发带给我最大的感悟是：<strong>RAG 的上限不在于模型本身，而在于你对知识结构化理解的深度。</strong> 从平铺切片到 Tree-T，从单一搜索到三路召回，每一步工程的推进，都是在为 AI 补全名为“常识”和“逻辑”的拼图。</p>
+<p>**下一步 (v0.7.0)**：我们将挑战 <strong>Agentic-KGR</strong>，让图谱不再是静态的，而是在对话中自动演进的“长期记忆”。</p>
+<blockquote>
+<p><strong>致谢</strong>：感谢 TAdaRAG、Cog-RAG、BookRAG 等优秀论文带给我的架构灵感。</p>
+</blockquote>
+<p>代码已开源，欢迎 Star 与 PR！</p>
+<blockquote>
+<p>Project Repo: <a target="_blank" rel="noopener" href="https://github.com/stack-echo/Chimera">https://github.com/stack-echo/Chimera</a></p>
+</blockquote>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>多路召回：Chimera（v0.6.1）开发复盘</div>
+      <div>https://stackecho.blog/2026/01/08/项目复盘/Chimera/2026-01-08-多路召回：Chimera（v0.6.1）开发复盘/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Xu Yuyang</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年1月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/01/01/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/Chimera/2026-01-01-%E6%9E%B6%E6%9E%84%E7%A0%B4%E5%B1%80%EF%BC%9AChimera%EF%BC%88v0.6.0%EF%BC%89%E5%BC%80%E5%8F%91%E5%A4%8D%E7%9B%98/" title="架构破局：Chimera（v0.6.0）开发复盘">
+                        <span class="hidden-mobile">架构破局：Chimera（v0.6.0）开发复盘</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
